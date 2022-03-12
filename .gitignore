@@ -48,4 +48,9 @@ data/shake_study/shake_omics.RData
 data/24_7
 data/24_7/
 
+data/24_7/all_omes
+data/24_7/all_omes_hr
+data/24_7/all_omes_wear
+data/24_7/all_omes_wear_food
+
 
