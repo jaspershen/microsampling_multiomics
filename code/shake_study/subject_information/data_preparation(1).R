@@ -1,0 +1,27 @@
+no_function()
+sxtTools::setwd_project()
+library(tidyverse)
+rm(list = ls())
+
+setwd("data/shake_study/subject_info/")
+subject_info1 <- readr::read_csv("Shake_participants_Meta_rk.csv")
+subject_info2 <- readr::read_csv("Shake_participants_Meta.csv")
+
+
+subject_info <- subject_info1
+
+subject_info <-
+  subject_info %>%
+  dplyr::select(
+    subject_id = PID,
+    sex = Sex,
+    ethnicity = Ethnicity,
+    sspg = SSPG,
+    sspg_date = SSPG_date,
+    age = AgeYears,
+    weight = Weight_KG,
+    bmi = Bmi
+  )
+
+
+save(subject_info, file = "subject_info")

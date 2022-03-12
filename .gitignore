@@ -37,3 +37,15 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+manuscript
+manuscript/
+
+data/shake_study
+data/shake_study/
+data/shake_study/shake_omics.RData
+
+data/24_7
+data/24_7/
+
+
