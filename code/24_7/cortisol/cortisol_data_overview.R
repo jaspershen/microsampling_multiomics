@@ -4,18 +4,18 @@ no_function()
 library(tidyverse)
 
 ###cortisol
-sxtTools::setwd_project()
+masstools::setwd_project()
 rm(list = ls())
-source("R/tools.R")
+source("code/tools.R")
 
-load("data/7_24_mike/cortisol/data_preparation/expression_data")
-load("data/7_24_mike/cortisol/data_preparation/sample_info")
-load("data/7_24_mike/cortisol/data_preparation/variable_info")
+load("data/24_7/cortisol/data_preparation/expression_data")
+load("data/24_7/cortisol/data_preparation/sample_info")
+load("data/24_7/cortisol/data_preparation/variable_info")
 
-load("data/7_24_mike/summary_info/day_night_df")
-load("data/7_24_mike/summary_info/all_accurate_time")
+load("data/24_7/summary_info/day_night_df")
+load("data/24_7/summary_info/all_accurate_time")
 
-setwd("data/7_24_mike/cortisol/data_overview")
+setwd("data/24_7/cortisol/data_overview")
 
 expression_data =
   expression_data %>% 

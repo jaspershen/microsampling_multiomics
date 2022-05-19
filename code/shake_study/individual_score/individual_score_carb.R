@@ -1,17 +1,19 @@
 ##
 no_function()
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 library(tidyverse)
 rm(list = ls())
 
+source("code/tools.R")
+
 ###load data
 ##metabolomics
-load("data/shake_study/metabolome_data_analysis/data_preparation/expression_data")
-load("data/shake_study/metabolome_data_analysis/data_preparation/sample_info")
-load("data/shake_study/metabolome_data_analysis/data_preparation/variable_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/expression_data")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/sample_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/variable_info")
 
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/anova_marker_name")
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/anova_marker_name")
 
 expression_data <-
   expression_data[anova_marker_name, ]
@@ -20,7 +22,7 @@ variable_info <-
   variable_info[match(anova_marker_name, variable_info$variable_id), ] %>% 
   dplyr::mutate(mol_class = "metabolite")
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 setwd("data/shake_study/3_omics/individual_scores/carb_score/")
 
 variable_info$mol_name[!is.na(variable_info$Metabolite)] <- 
@@ -29,7 +31,6 @@ variable_info$mol_name[!is.na(variable_info$Metabolite)] <-
 dim(expression_data)
 dim(sample_info)
 dim(variable_info)
-
 
 ###remove outliers
 value <- 
@@ -46,7 +47,6 @@ sample_info <-
 expression_data <-
   expression_data %>% 
   dplyr::select(sample_info$sample_id)
-
 
 ####carb score
 ####carbohydrates D(-)-Fructose, L-Lactic acid, Pyruvic acid
@@ -73,7 +73,7 @@ carb_expression_data <-
 # names(subject_col) <- subject_id
 # 
 # save(subject_col, file = "../subject_col")
-load("../subject_col")
+# load("../subject_col")
 
 library(plyr)
 
@@ -253,7 +253,6 @@ carb_score %>%
   apply(1, mean) %>%
   sort()
 
-
 temp_data1 = 
   carb_expression_data %>%
   tibble::rownames_to_column(var = "variable_id") %>%
@@ -274,12 +273,10 @@ temp_data1 =
   do.call(rbind, .) %>%
   as.data.frame()
   
-
 temp_data2 = 
   carb_score %>% 
   tibble::rownames_to_column(var = "subject_id") %>% 
   tidyr::pivot_longer(cols = -subject_id, names_to = "mol_name", values_to = "area")
-
 
 temp_data = 
   temp_data1 %>% 
@@ -309,8 +306,9 @@ plot =
     panel.grid = element_blank(),
     axis.title = element_text(size = 10),
     axis.text = element_text(size = 10),
-    axis.text.x = element_text(angle = 45, size = 10),
-    strip.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, size = 10, hjust = 1, vjust = 1),
+    strip.background = element_rect(fill = "#0099B47F"),
+    strip.text = element_text(color = "white", size = 10),
     panel.background = element_rect(fill = "transparent", color = NA),
     plot.background = element_rect(fill = "transparent", color = NA),
     legend.background = element_rect(fill = "transparent", color = NA)
@@ -319,6 +317,63 @@ plot =
 plot
 
 # ggsave(plot, filename = "carb_plot2.pdf", width = 14, height = 5)
+
+
+carb_score1 = 
+  carb_score %>% 
+  apply(2, function(x){
+    1 - ((x - min(x))/(max(x) - min(x)))
+  }) %>% 
+  as.data.frame()
+
+temp_data <-
+  carb_score1 %>%
+  tibble::rownames_to_column(var = "subject_id") %>%
+  tidyr::pivot_longer(cols = -subject_id,
+                      names_to = "class",
+                      values_to = 'value') %>%
+  dplyr::mutate(subject_id = factor(subject_id, levels = stringr::str_sort(
+    unique(sample_info$subject_id), numeric = TRUE
+  )))
+
+library(plyr)
+rsd <- 
+temp_data %>% 
+  group_by(subject_id) %>% 
+  plyr::dlply(.variables = .(subject_id)) %>% 
+  purrr::map(function(x){
+    rsd = sd(x$value)*100/mean(x$value)
+    data.frame(subject_id = unique(x$subject_id),
+               rsd = rsd)
+  }) %>% 
+  do.call(rbind, .) %>% 
+  as.data.frame()
+
+library(ggside)
+
+plot <- 
+temp_data %>% 
+  dplyr::left_join(rsd, by = "subject_id") %>% 
+  ggplot(aes(subject_id, value)) +
+  geom_boxplot(aes(color = subject_id),
+               show.legend = FALSE) +
+  geom_jitter(aes(fill = subject_id), size = 3,
+              shape = 21,
+              show.legend = FALSE) +
+  scale_fill_manual(values = subject_col) +
+  scale_color_manual(values = subject_col) +
+  base_theme +
+  labs(x = "", y = "Score") +
+  geom_text(aes(x = subject_id, 
+                y = 1,label = paste0(round(rsd, 2), "%")),
+            angle = 90)
+
+plot  
+
+ggsave(plot, filename = "carb_score_boxplot.pdf", width = 14, height = 3)
+
+
+
 
 
 

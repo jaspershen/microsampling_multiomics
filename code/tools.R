@@ -688,7 +688,17 @@ base_theme =
 
 
 
-
+lipid_class_color =
+  c("CE" = ggsci::pal_npg()(n=10)[1],
+    "CER" = ggsci::pal_npg()(n=10)[2],
+    "LPC" = ggsci::pal_npg()(n=10)[3],
+    "PC" = ggsci::pal_npg()(n=10)[4],
+    "PE" = ggsci::pal_npg()(n=10)[5],
+    "PI" = ggsci::pal_npg()(n=10)[6],
+    "SM" = ggsci::pal_npg()(n=10)[7],
+    "DAG" = ggsci::pal_npg()(n=10)[8],
+    "LPE" = ggsci::pal_npg()(n=10)[9],
+    "TAG" = ggsci::pal_npg()(n=10)[10])
 
 
 
@@ -703,6 +713,15 @@ class_color =
     "metabolic_panel" = ggsci::pal_aaas()(10)[7],
     "proteomics" = ggsci::pal_aaas()(10)[8]
   )
+
+######
+shake_omics_color =
+  c(
+    "Lipidomics" = ggsci::pal_aaas()(10)[1],
+    "Metabolomics" = ggsci::pal_aaas()(10)[3],
+    "Cytokine" = ggsci::pal_aaas()(10)[4]
+  )
+
 
 wearable_color =
   c(
@@ -738,6 +757,37 @@ week_color =
     "Tue-5-7" = RColorBrewer::brewer.pal(n = 6, name = "Dark2")[4]
   )
 
+
+tp_color <-
+  c("0" = ggsci::pal_d3()(n=5)[1],
+    "30" = ggsci::pal_d3()(n=5)[2],
+    "60" = ggsci::pal_d3()(n=5)[3],
+    "120" = ggsci::pal_d3()(n=5)[4],
+    "240" = ggsci::pal_d3()(n=5)[5])
+
+subject_col <-
+  c("#543005", "#5F3606", "#6A3D07", "#764408", "#814B09", "#8D520A", "#975C12", "#A26519",
+    "#AC6F20", "#B77927", "#C08431", "#C79141", "#CD9F51", "#D4AC62", "#DAB972", "#DDC584",
+    "#D8CD9A", "#D3D5AF", "#CEDDC4", "#C9E5DA", "#BFE7E1", "#B1E1D9", "#A2DBD2", "#94D5CB",
+    "#85CFC3", "#76C6BA", "#67BBB0", "#57AFA6", "#48A49B", "#389991", "#2D8F87", "#22857D",
+    "#177B73", "#0D7169", "#02675F", "#005E55", "#00554C", "#004D42", "#004439", "#003C30")
+
+names(subject_col) <- 
+  c("S1",  "S2",  "S3",  "S4",  "S5",  "S6",  "S7",  "S8",  "S9",  "S10", "S11", "S12", "S13", "S14",
+    "S15", "S16", "S17", "S18", "S19", "S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28",
+    "S29", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S38", "S39", "S40")
+
+
+sex_color <- 
+  c("M" = ggsci::pal_aaas()(n = 10)[10],
+    "F" = ggsci::pal_aaas()(n = 10)[2])
+
+
+ethnicity_color <- 
+  c("A" = ggsci::pal_nejm()(n=8)[1],
+    "B" = ggsci::pal_nejm()(n=8)[2],
+    "C" = ggsci::pal_nejm()(n=8)[3],
+    "H" = ggsci::pal_nejm()(n=8)[5])
 
 match_data = function(sample_info1,
                       expression_data1,
@@ -1508,6 +1558,103 @@ parlDiag <- function(Parties,
 
 
 
+######get the correlation matrix
+get_cor_matrix = function(data, 
+                          c, 
+                          scale = TURE,
+                          method = c("spearman", "pearson"),
+                          which = c("median", "mean")){
+  method = match.arg(method)
+  which = match.arg(which)
+  data = 
+    data %>% 
+    apply(1, function(x){
+      (x - mean(x))/sd(x)}) %>% 
+    t() %>% 
+    as.data.frame()
+  
+  ###get the distance for each two cluster
+  cluster = 
+    sort(unique(c$cluster))
+  
+  cluster[-length(cluster)] %>%
+    purrr::map(function(i) {
+      cluster1 = which(c$cluster == i)
+      purrr::map((i + 1):length(cluster),
+                 .f = function(j) {
+                   cluster2 = which(c$cluster == j)
+                   data1 = data[cluster1, ]
+                   data2 = data[cluster2, ]
+                   all_cor =
+                     get_cor_for_each_variable(data1 = data1,
+                                               data2 = data2,
+                                               method = method)
+                   # if (which == "median") {
+                   #   value = median(all_cor)
+                   # } else{
+                   #   value = mean(all_cor)
+                   # }
+                   data.frame(from = i, to = j, cor = unname(all_cor))
+                 } 
+      ) %>% 
+        do.call(rbind, .) %>% 
+        as.data.frame()
+    }) %>% 
+    do.call(rbind, .) %>% 
+    as.data.frame()
+} 
+
+get_cor_for_each_variable =
+  function(data1, data2, method = c("spearman", "pearson")) {
+    method = match.arg(method)
+    purrr::map(as.data.frame(t(data1)), .f = function(x){
+      purrr::map(as.data.frame(t(data2)), .f = function(y){
+        cor(x, y, method = method)
+      }) %>% 
+        unlist()
+    }) %>% 
+      unlist()
+  }
+
+
+
+modularity_plot = function(subnetworks){
+  plot <- 
+    ggplot(
+      data.frame(index = 1:length(subnetworks$modularity),
+                 modu = subnetworks$modularity, stringsAsFactors = FALSE),
+      aes(index, modu) 
+    ) +
+    geom_vline(xintercept = which.max(subnetworks$modularity), 
+               linetype = 2, colour = "#800000B2") + 
+    labs(x = "Community analysis iteration", y = "Modularity") +
+    geom_line(colour = "black") +
+    # geom_point() +
+    theme_bw() +
+    theme(axis.title = element_text(size = 13),
+          axis.text = element_text(size = 12))
+  
+  plot <-
+    plot + 
+    ggplot2::annotate(geom = "point", 
+                      x = which.max(subnetworks$modularity),
+                      y = max(subnetworks$modularity), 
+                      size = 3, 
+                      colour = "red") +
+    annotate(geom = "text", 
+             x = which.max(subnetworks$modularity),
+             y = max(subnetworks$modularity), 
+             label = paste("(",  which.max(subnetworks$modularity),
+                           ",", 
+                           max(subnetworks$modularity) %>% round(3),
+                           ")"),
+             size = 5,
+             colour = "red"
+    )
+  
+  plot
+}
+
 
 optimize_loess_span =
   function(x, y, span_range = seq(0.2, 0.6, 0.1)) {
@@ -1581,3 +1728,27 @@ optimize_loess_span =
     
     list(span_rmse, plot)
   }
+
+
+
+match_time = function(time1, time2, tol = 1) {
+  time1
+  time2
+  purrr::map(time1, function(x) {
+    idx = which(abs(difftime(
+      time1 = x,
+      time2 = time2,
+      units = "hour"
+    )) < tol)
+    if (length(idx) == 0) {
+      return(NULL)
+    } else{
+      data.frame(time1 = x,
+                 time2 = time2[idx])
+      
+    }
+  }) %>% 
+    dplyr::bind_rows()
+} 
+
+

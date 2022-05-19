@@ -51,7 +51,7 @@ library(plyr)
 #         value = x$value
 #         new_time = x$new_time
 #         
-#         ls_reg =
+#         ls_reg <-
 #           loess(value ~ new_time,
 #                 span = span)
 #         

@@ -1,23 +1,23 @@
 no_function()
 
 library(tidyverse)
-sxtTools::setwd_project()
+masstools::setwd_project()
 rm(list = ls())
-source("R/tools.R")
+source("code/tools.R")
 
 ####load data all the omics data
 {
   ###
-  load(here::here("data/7_24_mike/metabolomics/data_preparation/peaks/expression_data"))
-  load(here::here("data/7_24_mike/metabolomics/data_preparation/peaks/sample_info"))
-  load(here::here("data/7_24_mike/metabolomics/data_preparation/peaks/variable_info"))
+  load(here::here("data/24_7/metabolomics/data_preparation/peaks/expression_data"))
+  load(here::here("data/24_7/metabolomics/data_preparation/peaks/sample_info"))
+  load(here::here("data/24_7/metabolomics/data_preparation/peaks/variable_info"))
 }
 
-dir.create("data/7_24_mike/circadian_analysis/manual_raw_data", recursive = TRUE)
-setwd("data/7_24_mike/circadian_analysis/manual_raw_data")
+dir.create("data/24_7/circadian_analysis/manual_raw_data", recursive = TRUE)
+setwd("data/24_7/circadian_analysis/manual_raw_data")
 
 ######manual check
-load(here::here("data/7_24_mike/summary_info/day_night_df"))
+load(here::here("data/24_7/summary_info/day_night_df"))
 
 day_night_df = 
   day_night_df %>% 
@@ -25,9 +25,9 @@ day_night_df =
 
 ###read metadata
 metdata =
-  readr::read_csv(here::here("data/7_24_mike/raw_data_from_box/sample_registration.csv"))
+  readr::read_csv(here::here("data/24_7/raw_data_from_box/sample_registration.csv"))
 # metdata =
-#   readxl::read_xlsx(here::here("data/7_24_mike/raw_data_from_box/sample registration.xlsx"))
+#   readxl::read_xlsx(here::here("data/24_7/raw_data_from_box/sample registration.xlsx"))
 
 milk_time =
   metdata %>%
@@ -38,16 +38,43 @@ milk_time =
 
 milk_time[8] = milk_time[8] - 24*60*60
 
-load(here::here("data/7_24_mike/all_omes"))
+load(here::here("data/24_7/all_omes"))
 
 ####metabolite name
+#####cortisol
+metabolite_name = "Cortisol"
+grep("Cortisol$",all_omes$MolName, value = TRUE)
+grep("Cortisol$",all_omes$MolName, value = FALSE)
+
+temp_data =
+  all_omes[grep("Cortisol$",all_omes$MolName, value = FALSE), ]
+
+temp_data <-
+  temp_data %>%
+  dplyr::select(SampleID, Intensity) %>%
+  dplyr::left_join(sample_info, by = c("SampleID" = "sample_id"))
+
+plot2 =
+  time_plot(
+    x = temp_data$Intensity,
+    time = temp_data$accurate_time,
+    day_night_df = day_night_df,
+    x_name = "Cortisol",
+    add_point = TRUE,
+    x_color = class_color["cortisol"],
+    y_name = "Scaled intensity"
+  ) +
+  geom_vline(xintercept = milk_time, color = "red")
+
+plot2
+
+# ggsave(plot2, filename = paste0(metabolite_name, ".pdf"), width = 21, height = 5)
+
 
 ###Salicylic acid
 ##Salicylic acid
-##Salicylic acid
 metabolite_name = "Salicylic acid"
-grep("Salicylic acid$",variable_info$Compound.name, value = TRUE)
-grep("Salicylic acid$",variable_info$Compound.name, value = FALSE)
+grep(metabolite_name, variable_info$Compound.name, value = TRUE)
 
 grep("Salicylic acid$",all_omes$MolName, value = TRUE)
 grep("Salicylic acid$",all_omes$MolName, value = FALSE)
@@ -74,7 +101,7 @@ plot2 =
 
 plot2
 
-ggsave(plot2, filename = paste0(metabolite_name, ".pdf"), width = 21, height = 5)
+# ggsave(plot2, filename = paste0(metabolite_name, ".pdf"), width = 21, height = 5)
 
 temp_data %>% 
   ggplot(aes(time, Intensity)) +
@@ -96,7 +123,7 @@ coffee_time =
   pull(date_time) %>% 
   lubridate::as_datetime(tz = "America/Los_Angeles")
 
-load(here::here("data/7_24_mike/all_omes"))
+load(here::here("data/24_7/all_omes"))
 
 ####metabolite name
 
@@ -139,25 +166,25 @@ temp_data %>%
 
 
 ######annotation confirm
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/HILIC/POS/NCE25/result_hilic_pos25"))
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/HILIC/POS/NCE35/result_hilic_pos35"))
+load(here::here("data/24_7/metabolomics/metabolite_annotation/HILIC/POS/NCE25/result_hilic_pos25"))
+load(here::here("data/24_7/metabolomics/metabolite_annotation/HILIC/POS/NCE35/result_hilic_pos35"))
 
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/HILIC/NEG/NCE25/result_hilic_neg25"))
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/HILIC/NEG/NCE35/result_hilic_neg35"))
-
-
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/RPLC/POS/NCE25/result_rplc_pos25"))
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/RPLC/POS/NCE50/result_rplc_pos50"))
-
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/RPLC/NEG/NCE25/result_rplc_neg25"))
-load(here::here("data/7_24_mike/metabolomics/metabolite_annotation/RPLC/NEG/NCE50/result_rplc_neg50"))
+load(here::here("data/24_7/metabolomics/metabolite_annotation/HILIC/NEG/NCE25/result_hilic_neg25"))
+load(here::here("data/24_7/metabolomics/metabolite_annotation/HILIC/NEG/NCE35/result_hilic_neg35"))
 
 
-load(here::here("data/7_24_mike/metabolomics/orbitrapDatabase0.0.1"))
-load(here::here("data/7_24_mike/metabolomics/massbankDatabase0.0.2"))
-load(here::here("data/7_24_mike/metabolomics/hmdbDatabase0.0.2"))
-load(here::here("data/7_24_mike/metabolomics/monaDatabase0.0.2"))
-load(here::here("data/7_24_mike/metabolomics/metlinDatabase0.0.2"))
+load(here::here("data/24_7/metabolomics/metabolite_annotation/RPLC/POS/NCE25/result_rplc_pos25"))
+load(here::here("data/24_7/metabolomics/metabolite_annotation/RPLC/POS/NCE50/result_rplc_pos50"))
+
+load(here::here("data/24_7/metabolomics/metabolite_annotation/RPLC/NEG/NCE25/result_rplc_neg25"))
+load(here::here("data/24_7/metabolomics/metabolite_annotation/RPLC/NEG/NCE50/result_rplc_neg50"))
+
+
+load(here::here("data/24_7/metabolomics/orbitrapDatabase0.0.1"))
+load(here::here("data/24_7/metabolomics/massbankDatabase0.0.2"))
+load(here::here("data/24_7/metabolomics/hmdbDatabase0.0.2"))
+load(here::here("data/24_7/metabolomics/monaDatabase0.0.2"))
+load(here::here("data/24_7/metabolomics/metlinDatabase0.0.2"))
 
 #####Salicylic acid
 grep("Salicylic acid$",variable_info$Compound.name, value = TRUE)

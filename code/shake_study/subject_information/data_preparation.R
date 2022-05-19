@@ -7,7 +7,6 @@ setwd("data/shake_study/subject_info/")
 subject_info1 <- readr::read_csv("Shake_participants_Meta_rk.csv")
 subject_info2 <- readr::read_csv("Shake_participants_Meta.csv")
 
-
 subject_info <- subject_info1
 
 subject_info <-
@@ -23,5 +22,10 @@ subject_info <-
     bmi = Bmi
   )
 
+subject_info3 <- readr::read_csv("Shake_participants.csv")
+
+colnames(subject_info)
+
+colnames(subject_info3)
 
 save(subject_info, file = "subject_info")

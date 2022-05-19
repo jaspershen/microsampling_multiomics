@@ -1,9 +1,11 @@
 ##
 no_function()
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 library(tidyverse)
 rm(list = ls())
+
+source("code/tools.R")
 
 ###load data
 ##lipidomics
@@ -26,7 +28,7 @@ variable_info <-
   variable_info %>%
   dplyr::left_join(lipid_info, by = c("mol_name" = "Lipid_Name"))
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 setwd("data/shake_study/3_omics/individual_scores/fat_score/")
 
 variable_info$mol_name[!is.na(variable_info$Metabolite)] <- 
@@ -66,7 +68,7 @@ fat_expression_data <-
   t() %>% 
   as.data.frame()
 
-load("../subject_col")
+# load("../subject_col")
 
 library(plyr)
 
@@ -127,6 +129,9 @@ plot =
   }) %>% 
   do.call(rbind, .) %>% 
   as.data.frame() %>% 
+  dplyr::mutate(subject_id = factor(subject_id, 
+                                    levels = stringr::str_sort(unique(sample_info$subject_id), 
+                                                               numeric = TRUE))) %>% 
   ggplot(aes(TP, value, group = subject_id)) +
   geom_hline(yintercept = 0) +
   geom_point(aes(color = subject_id), show.legend = FALSE) +
@@ -143,16 +148,18 @@ plot =
     panel.grid.minor = element_blank(),
     axis.title = element_text(size = 10),
     axis.text = element_text(size = 10),
-    strip.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     panel.background = element_rect(fill = "transparent", color = NA),
     plot.background = element_rect(fill = "transparent", color = NA),
     legend.background = element_rect(fill = "transparent", color = NA),
     axis.text.y = element_blank(),
-    axis.ticks.y = element_blank()
+    axis.ticks.y = element_blank(),
+    strip.background = element_rect(fill = "#0099B47F"),
+    strip.text = element_text(color = "white", size = 10)
   )  +
   facet_grid(vars(mol_name), vars(subject_id), scales = "free_y")
 plot
-# ggsave(plot, filename = "fat_plot2.pdf", width = 21, height = 10)
+# ggsave(plot, filename = "fat_plot2.pdf", width = 14, height = 7)
 
 # 
 # ###calculate fat score for each person
@@ -282,9 +289,62 @@ plot =
     legend.background = element_rect(fill = "transparent", color = NA)
   ) 
 plot
-# ggsave(plot, filename = "fat_score_plot.pdf", width = 10, height = 7)
+# ggsave(plot, filename = "fat_score_plot.pdf", width = 14, height = 7)
 
 fat_score %>% 
   apply(1, mean) %>% 
   sort()
 
+
+fat_score1 = 
+  fat_score %>% 
+  apply(2, function(x){
+    1 - ((x - min(x))/(max(x) - min(x)))
+  }) %>% 
+  as.data.frame()
+
+temp_data <-
+  fat_score1 %>%
+  tibble::rownames_to_column(var = "subject_id") %>%
+  tidyr::pivot_longer(cols = -subject_id,
+                      names_to = "class",
+                      values_to = 'value') %>%
+  dplyr::mutate(subject_id = factor(subject_id, levels = stringr::str_sort(
+    unique(sample_info$subject_id), numeric = TRUE
+  )))
+
+library(plyr)
+rsd <- 
+  temp_data %>% 
+  group_by(subject_id) %>% 
+  plyr::dlply(.variables = .(subject_id)) %>% 
+  purrr::map(function(x){
+    rsd = sd(x$value)*100/mean(x$value)
+    data.frame(subject_id = unique(x$subject_id),
+               rsd = rsd)
+  }) %>% 
+  do.call(rbind, .) %>% 
+  as.data.frame()
+
+library(ggside)
+
+plot <- 
+  temp_data %>% 
+  dplyr::left_join(rsd, by = "subject_id") %>% 
+  ggplot(aes(subject_id, value)) +
+  geom_boxplot(aes(color = subject_id),
+               show.legend = FALSE) +
+  geom_jitter(aes(fill = subject_id), size = 3,
+              shape = 21,
+              show.legend = FALSE) +
+  scale_fill_manual(values = subject_col) +
+  scale_color_manual(values = subject_col) +
+  base_theme +
+  labs(x = "", y = "Score") +
+  geom_text(aes(x = subject_id, 
+                y = 1,label = paste0(round(rsd, 2), "%")),
+            angle = 90)
+
+plot  
+
+# ggsave(plot, filename = "fat_score_boxplot.pdf", width = 14, height = 3)

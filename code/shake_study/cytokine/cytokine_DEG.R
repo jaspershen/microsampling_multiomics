@@ -1,10 +1,11 @@
 #to avoid source
 no_exist_function()
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 rm(list = ls())
 library(tidyverse)
-source("R/tools.R")
+source("code/tools.R")
+
 ##load data
 load("data/shake_study/cytokine_data_analysis/data_preparation/expression_data")
 load("data/shake_study/cytokine_data_analysis/data_preparation/sample_info")
@@ -16,7 +17,7 @@ sample_info <-
   sample_info %>% 
   dplyr::left_join(subject_info, by = "subject_id")
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 setwd("data/shake_study/cytokine_data_analysis/DEG")
 
 dim(expression_data)
@@ -43,9 +44,9 @@ subject_data <-
 
 
 ###ANOVA analysis
-# library(tidyverse)
-# library(ggpubr)
-# library(rstatix)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
 # 
 # anova_p <-
 # purrr::map(as.data.frame(t(subject_data)), .f = function(x){
@@ -122,6 +123,67 @@ anova_marker_name <-
 
 load("anova_marker_name")
 
+
+# ###permutation test
+# permutation_marker_number <- 
+#   purrr::map(1:100, function(i){
+#     cat(i, "")
+#     anova_p <-
+#       purrr::map(as.data.frame(t(subject_data)), .f = function(x){
+#         temp_data <-
+#           data.frame(
+#             subject_id = sample_info$subject_id,
+#             tp = factor(
+#               sample_info$TP,
+#               levels = stringr::str_sort(unique(sample_info$TP),
+#                                          numeric = TRUE)),
+#             x = x,
+#             stringsAsFactors = FALSE
+#           )
+#         
+#         intersect_name <-
+#           temp_data %>%
+#           plyr::dlply(.variables = .(tp)) %>%
+#           purrr::map(.f = function(x){
+#             x$subject_id
+#           }) %>%
+#           Reduce(intersect, .) %>%
+#           unique()
+#         
+#         temp_data <-
+#           temp_data %>%
+#           dplyr::filter(subject_id %in% intersect_name)
+#         
+#         temp_data$subject_id <-
+#           factor(temp_data$subject_id, levels = unique(temp_data$subject_id))
+#         
+#         temp_data$x = sample(temp_data$x)
+#         
+#         res.aov <-
+#           anova_test(
+#             data = temp_data,
+#             dv = x,
+#             wid = subject_id,
+#             within = tp
+#           )
+#         
+#         p <-
+#           as.data.frame(get_anova_table(res.aov))$p
+#         
+#         p <-
+#           data.frame(p, stringsAsFactors = FALSE, check.names = FALSE)
+#         p
+#       }) %>% 
+#       do.call(rbind, .) %>% 
+#       as.data.frame()
+#     
+#     sum(anova_p$p < 0.05)
+#   }) %>% 
+#   unlist()
+# 
+# save(permutation_marker_number, file = "permutation_marker_number")
+load(permutation_marker_number, file = "permutation_marker_number")
+sum(permutation_marker_number > 7)/100
 
 ###calculate the FC 30/0
 idx0 <- which(stringr::str_detect(colnames(subject_data), "T0"))
@@ -250,33 +312,33 @@ subject_data2 <-
       dplyr::select(-TP)
   })
 
-##find all the peaks in different time points
-fc_p_value <-
-  pbapply::pblapply(subject_data2[-1], function(x) {
-    y <- subject_data2[[1]]
-    intersect_name <- intersect(rownames(x), rownames(y))
-    p_value <- lapply(1:ncol(x), function(idx) {
-      wilcox.test(x[intersect_name, idx],
-                  subject_data2[[1]][intersect_name, idx],
-                  paired = TRUE)$p.value
-    }) %>%
-      unlist() %>%
-      p.adjust(method = "fdr")
-
-    fc <- lapply(1:ncol(x), function(idx) {
-      mean(x[, idx]) / mean(subject_data2[[1]][, idx])
-    }) %>%
-      unlist()
-
-    fc[is.infinite(fc)] <- max(fc[!is.infinite(fc)])
-
-    data.frame(p_value,
-               fc,
-               variable_id = variable_info$variable_id,
-               stringsAsFactors = FALSE)
-  })
-
-save(fc_p_value, file = "fc_p_value")
+# ##find all the peaks in different time points
+# fc_p_value <-
+#   pbapply::pblapply(subject_data2[-1], function(x) {
+#     y <- subject_data2[[1]]
+#     intersect_name <- intersect(rownames(x), rownames(y))
+#     p_value <- lapply(1:ncol(x), function(idx) {
+#       wilcox.test(x[intersect_name, idx],
+#                   subject_data2[[1]][intersect_name, idx],
+#                   paired = TRUE)$p.value
+#     }) %>%
+#       unlist() %>%
+#       p.adjust(method = "fdr")
+# 
+#     fc <- lapply(1:ncol(x), function(idx) {
+#       mean(x[, idx]) / mean(subject_data2[[1]][, idx])
+#     }) %>%
+#       unlist()
+# 
+#     fc[is.infinite(fc)] <- max(fc[!is.infinite(fc)])
+# 
+#     data.frame(p_value,
+#                fc,
+#                variable_id = variable_info$variable_id,
+#                stringsAsFactors = FALSE)
+#   })
+# 
+# save(fc_p_value, file = "fc_p_value")
 
 load("fc_p_value")
 
@@ -323,7 +385,7 @@ marker_each_point[[1]]
 
 names(marker_each_point)
 
-save(marker_each_point, file = "marker_each_point")
+# save(marker_each_point, file = "marker_each_point")
 load("marker_each_point")
 
 #####a sankey 
@@ -407,25 +469,25 @@ plot1 <-
 
 plot1
 
-ggsave(
-  plot1,
-  file = file.path("marker_in_different_points", "gene_sankey_light.pdf"),
-  width = 14,
-  height = 7,
-  bg = "transparent"
-)
-
-ggsave(
-  plot1,
-  file = file.path("marker_in_different_points", "gene_sankey_light.png"),
-  width = 14,
-  height = 7,
-  bg = "transparent"
-)
+# ggsave(
+#   plot1,
+#   file = file.path("marker_in_different_points", "gene_sankey_light.pdf"),
+#   width = 14,
+#   height = 7,
+#   bg = "transparent"
+# )
+# 
+# ggsave(
+#   plot1,
+#   file = file.path("marker_in_different_points", "gene_sankey_light.png"),
+#   width = 14,
+#   height = 7,
+#   bg = "transparent"
+# )
 
 length(all_marker_name)
 
-save(all_marker_name, file = "all_marker_name")
+# save(all_marker_name, file = "all_marker_name")
 
 length(all_marker_name)
 
@@ -516,6 +578,6 @@ temp_data %>%
 
 plot
 
-ggsave(plot, filename = "class_change.pdf", width = 10, height = 7)
-ggsave(plot, filename = "class_change.png", width = 10, height = 7)
+# ggsave(plot, filename = "class_change.pdf", width = 10, height = 7)
+# ggsave(plot, filename = "class_change.png", width = 10, height = 7)
 

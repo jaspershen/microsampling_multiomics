@@ -1,19 +1,19 @@
 ##
 no_function()
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 library(tidyverse)
 rm(list = ls())
 
-source("R/tools.R")
+source("code/tools.R")
 
 ###load data
 ##metabolomics
-load("data/shake_study/metabolome_data_analysis/data_preparation/expression_data")
-load("data/shake_study/metabolome_data_analysis/data_preparation/sample_info")
-load("data/shake_study/metabolome_data_analysis/data_preparation/variable_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/expression_data")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/sample_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/variable_info")
 load("data/shake_study/subject_info/subject_info")
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/anova_marker_name")
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/anova_marker_name")
 
 expression_data1 <-
   expression_data[anova_marker_name,]
@@ -47,7 +47,7 @@ expression_data3 <-
 variable_info3 <-
   variable_info[match(anova_marker_name, variable_info$variable_id),]
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 setwd("data/shake_study/3_omics/individual_variation")
 
 intersect_name <-
@@ -197,7 +197,8 @@ name2 <-
 
 distance_individual_old2 <- distance_individual_old[name2, ]
 cluster <- result$originalResult[[idx]]$consensusClass
-
+# save(cluster, file = "cluster")
+load("cluster")
 temp_sample_info <-
   subject_info[match(rownames(distance_individual_old2), subject_info$subject_id), ]
 
@@ -306,15 +307,15 @@ ha1 = rowAnnotation(
     ),
     sex =
       c(
-        "M" = ggsci::pal_aaas()(n = 10)[2],
-        "F" = ggsci::pal_aaas()(n = 10)[10]
+        "M" = unname(sex_color["M"]),
+        "F" = unname(sex_color["F"])
       ),
     
     ethnicity = c(
-      "A" = ggsci::pal_aaas()(n = 10)[3],
-      "B" = ggsci::pal_aaas()(n = 10)[2],
-      "C" = ggsci::pal_d3()(10)[2],
-      "H" = "snow1"
+      "A" = unname(ethnicity_color["A"]),
+      "B" = unname(ethnicity_color["B"]),
+      "C" = unname(ethnicity_color["C"]),
+      "H" = unname(ethnicity_color["H"])
     )
   )
 )

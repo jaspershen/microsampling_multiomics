@@ -1,17 +1,17 @@
 ##
 no_function()
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 library(tidyverse)
 rm(list = ls())
 
 ###load data
 ##metabolomics
-load("data/shake_study/metabolome_data_analysis/data_preparation/expression_data")
-load("data/shake_study/metabolome_data_analysis/data_preparation/sample_info")
-load("data/shake_study/metabolome_data_analysis/data_preparation/variable_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/expression_data")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/sample_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/variable_info")
 
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/anova_marker_name")
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/anova_marker_name")
 
 expression_data1 <-
   expression_data[anova_marker_name, ]
@@ -45,7 +45,7 @@ expression_data3 <-
 variable_info3 <-
   variable_info[match(anova_marker_name, variable_info$variable_id), ]
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 setwd("data/shake_study/3_omics/k_means_clustering")
 
 intersect_name <- 
@@ -545,18 +545,18 @@ plot
 
 
 ###functional annotation for different cluster
-sxtTools::setwd_project()
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/subject_data_mean")
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/subject_data_sd")
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/subject_data_sem")
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/fc_p_value")
-metabolome_subject_data_mean <-
+masstools::setwd_project()
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/subject_data_mean")
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/subject_data_sd")
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/subject_data_sem")
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/fc_p_value")
+metabolomics_subject_data_mean <-
   subject_data_mean
-metabolome_subject_data_sd <-
+metabolomics_subject_data_sd <-
   subject_data_sd
-metabolome_subject_data_sem <-
+metabolomics_subject_data_sem <-
   subject_data_sem
-metabolome_fc_p <- fc_p_value
+metabolomics_fc_p <- fc_p_value
 
 load("data/shake_study/lipidomics_data_analysis/DEG/subject_data_mean")
 load("data/shake_study/lipidomics_data_analysis/DEG/subject_data_sd")
@@ -908,10 +908,10 @@ cluster3_metabolite$variable_id[c(1, 2, 3, 10, 12, 17, 19, 33, 39)]
 
 idx <- 
 match(amino_acid_variable_id, 
-      rownames(metabolome_subject_data_mean))
+      rownames(metabolomics_subject_data_mean))
 
 mean_value <- 
-metabolome_subject_data_mean[idx, ] %>%
+metabolomics_subject_data_mean[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -919,7 +919,7 @@ metabolome_subject_data_mean[idx, ] %>%
                       values_to = "mean")
 
 sem_value <- 
-  metabolome_subject_data_sem[idx, ] %>%
+  metabolomics_subject_data_sem[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -963,10 +963,10 @@ amino_acid_variable_id <-
 
 idx <- 
   match(amino_acid_variable_id, 
-        rownames(metabolome_subject_data_mean))
+        rownames(metabolomics_subject_data_mean))
 
 mean_value <- 
-  metabolome_subject_data_mean[idx, ] %>%
+  metabolomics_subject_data_mean[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -974,7 +974,7 @@ mean_value <-
                       values_to = "mean")
 
 sem_value <- 
-  metabolome_subject_data_sem[idx, ] %>%
+  metabolomics_subject_data_sem[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -1015,10 +1015,10 @@ carbohydrates_variable_id <-
 
 idx <- 
   match(carbohydrates_variable_id, 
-        rownames(metabolome_subject_data_mean))
+        rownames(metabolomics_subject_data_mean))
 
 mean_value <- 
-  metabolome_subject_data_mean[idx, ] %>%
+  metabolomics_subject_data_mean[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -1026,7 +1026,7 @@ mean_value <-
                       values_to = "mean")
 
 sem_value <- 
-  metabolome_subject_data_sem[idx, ] %>%
+  metabolomics_subject_data_sem[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -1072,10 +1072,10 @@ acylcarnitine_variable_id <-
 
 idx <- 
   match(acylcarnitine_variable_id, 
-        rownames(metabolome_subject_data_mean))
+        rownames(metabolomics_subject_data_mean))
 
 mean_value <- 
-  metabolome_subject_data_mean[idx, ] %>%
+  metabolomics_subject_data_mean[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -1083,7 +1083,7 @@ mean_value <-
                       values_to = "mean")
 
 sem_value <- 
-  metabolome_subject_data_sem[idx, ] %>%
+  metabolomics_subject_data_sem[idx, ] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -1198,7 +1198,7 @@ ffa_idx <- cluster2_lipid %>%
   dplyr::pull(variable_id)  
 
 pc_data <- 
-metabolome_fc_p %>% 
+metabolomics_fc_p %>% 
   purrr::map(.f = function(x){
     x %>% 
       dplyr::filter(variable_id %in% pc_idx) %>% 
@@ -1214,7 +1214,7 @@ metabolome_fc_p %>%
   dplyr::mutate(class = "PC")
 
 pe_data <- 
-metabolome_fc_p %>% 
+metabolomics_fc_p %>% 
   purrr::map(.f = function(x){
     x %>% 
       dplyr::filter(variable_id %in% pe_idx) %>% 
@@ -1313,7 +1313,7 @@ temp_data %>%
 
 
 ###lipid changes according to carbon and un number
-sxtTools::setwd_project()
+masstools::setwd_project()
 lipid_info <- read.table("data/shake_study/lipidomics_data_analysis/DEG/Lipomat05.txt", header = TRUE, sep = "\t")
 load("data/shake_study/lipidomics_data_analysis/data_preparation/expression_data")
 lipidomics_expression_data <-

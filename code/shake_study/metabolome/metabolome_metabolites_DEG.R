@@ -1,13 +1,13 @@
 ##
 no_function()
-sxtTools::setwd_project()
+masstools::setwd_project()
 library(tidyverse)
 rm(list = ls())
 
 ###load data
-load("data/shake_study/metabolome_data_analysis/data_preparation/expression_data")
-load("data/shake_study/metabolome_data_analysis/data_preparation/sample_info")
-load("data/shake_study/metabolome_data_analysis/data_preparation/variable_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/expression_data")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/sample_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/variable_info")
 
 load("data/shake_study/subject_info/subject_info")
 
@@ -15,8 +15,8 @@ sample_info <-
   sample_info %>% 
   dplyr::left_join(subject_info, by = "subject_id")
 
-sxtTools::setwd_project()
-setwd("data/shake_study/metabolome_data_analysis/metabolites/DEG")
+masstools::setwd_project()
+setwd("data/shake_study/metabolomics_data_analysis/metabolites/DEG")
 
 variable_info <- 
   variable_info %>% 
@@ -48,9 +48,9 @@ subject_data <-
   log(subject_data + 1, 2)
 
 # ###ANOVA analysis
-# library(tidyverse)
-# library(ggpubr)
-# library(rstatix)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
 # 
 # anova_p <-
 #   purrr::map(as.data.frame(t(subject_data)), .f = function(x){
@@ -119,6 +119,70 @@ subject_data <-
 # 
 # save(anova_p, file = "anova_p")
 load("anova_p")
+
+
+# ###permutation test
+# library(plyr)
+# permutation_marker_number <-
+#   purrr::map(1:100, function(i){
+#     cat(i, "")
+#     anova_p <-
+#       purrr::map(as.data.frame(t(subject_data)), .f = function(x){
+#         temp_data <-
+#           data.frame(
+#             subject_id = sample_info$subject_id,
+#             tp = factor(
+#               sample_info$TP,
+#               levels = stringr::str_sort(unique(sample_info$TP),
+#                                          numeric = TRUE)),
+#             x = x,
+#             stringsAsFactors = FALSE
+#           )
+# 
+#         intersect_name <-
+#           temp_data %>%
+#           plyr::dlply(.variables = .(tp)) %>%
+#           purrr::map(.f = function(x){
+#             x$subject_id
+#           }) %>%
+#           Reduce(intersect, .) %>%
+#           unique()
+# 
+#         temp_data <-
+#           temp_data %>%
+#           dplyr::filter(subject_id %in% intersect_name)
+# 
+#         temp_data$subject_id <-
+#           factor(temp_data$subject_id, levels = unique(temp_data$subject_id))
+# 
+#         temp_data$x = sample(temp_data$x)
+# 
+#         res.aov <-
+#           anova_test(
+#             data = temp_data,
+#             dv = x,
+#             wid = subject_id,
+#             within = tp
+#           )
+# 
+#         p <-
+#           as.data.frame(get_anova_table(res.aov))$p
+# 
+#         p <-
+#           data.frame(p, stringsAsFactors = FALSE, check.names = FALSE)
+#         p
+#       }) %>%
+#       do.call(rbind, .) %>%
+#       as.data.frame()
+# 
+#     sum(anova_p$p < 0.05)
+#   }) %>%
+#   unlist()
+# 
+# save(permutation_marker_number, file = "permutation_marker_number")
+load("permutation_marker_number")
+sum(permutation_marker_number > 99)/100
+
 
 ####calculate the FC 30/0
 idx0 <- which(stringr::str_detect(colnames(subject_data), "T0"))

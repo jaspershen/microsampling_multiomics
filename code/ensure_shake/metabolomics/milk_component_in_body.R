@@ -18,15 +18,15 @@ library(tidyverse)
 library(data.table)
 library(tidymass)
 
-tinyTools::setwd_project()
+masstools::setwd_project()
 rm(list=ls())
-source("R/tools.R")
+source("code/tools.R")
 
 ###load data from shake and ensure shake study
 ###load shake study plasma metabolome
-load("data/shake_study/metabolome_data_analysis/data_preparation/peaks/expression_data")
-load("data/shake_study/metabolome_data_analysis/data_preparation/peaks/sample_info")
-load("data/shake_study/metabolome_data_analysis/data_preparation/peaks/variable_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/peaks/expression_data")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/peaks/sample_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/peaks/variable_info")
 
 plasma_expression_data = expression_data
 plasma_sample_info = sample_info
@@ -55,7 +55,7 @@ milk_variable_info %>%
   ))
   
 ####set work directory
-tinyTools::setwd_project()
+masstools::setwd_project()
 setwd("data/shake_study/milk_component_in_body")
 
 ####match peaks in milk and plasma
@@ -117,7 +117,7 @@ setwd("data/shake_study/milk_component_in_body")
 # ggsave(plot, filename = "rplc_pos_rt_error.pdf", width = 3, height = 4)
 # 
 # rplc_pos_match_idx = 
-# tinyTools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
+# masstools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
 #                        data2 = data2 %>% dplyr::select(mz, rt),
 #                        mz.tol = 1.06+3.05, 
 #                        rt.tol = 60.7+97.62, 
@@ -208,7 +208,7 @@ load("rplc_pos_match_idx")
 # ggsave(plot, filename = "rplc_neg_rt_error.pdf", width = 3, height = 4)
 # 
 # rplc_neg_match_idx = 
-#   tinyTools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
+#   masstools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
 #                          data2 = data2 %>% dplyr::select(mz, rt),
 #                          mz.tol = 0.66+0.6, 
 #                          rt.tol = 47.23+58.81, 
@@ -298,7 +298,7 @@ load("rplc_neg_match_idx")
 # 
 # 
 # hilic_pos_match_idx = 
-#   tinyTools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
+#   masstools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
 #                          data2 = data2 %>% dplyr::select(mz, rt),
 #                          mz.tol = 4.32+4.51, 
 #                          rt.tol = 38.41+34.83, 
@@ -389,7 +389,7 @@ load("hilic_pos_match_idx")
 # ggsave(plot, filename = "hilic_neg_rt_error.pdf", width = 3, height = 4)
 # 
 # hilic_neg_match_idx = 
-#   tinyTools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
+#   masstools::mz_rt_match(data1 = data1 %>% dplyr::select(mz, rt),
 #                          data2 = data2 %>% dplyr::select(mz, rt),
 #                          mz.tol = 1.19+2.58, 
 #                          rt.tol = 40.39 + 29.31, 
@@ -635,7 +635,11 @@ plasma_milk_match_table$in_baseline
 table(plasma_milk_match_table$in_baseline)
 
 plasma_milk_match_table %>% 
-  dplyr::filter(in_baseline == "No")
+  dplyr::filter(in_baseline == "No") %>% 
+  dplyr::filter(!is.na(milk_annotation))
+
+plasma_milk_match_table %>% 
+  dplyr::filter(in_baseline == "Yes")
 
 
 

@@ -1,18 +1,24 @@
 ##
 no_function()
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 library(tidyverse)
 rm(list = ls())
 
+source("code/tools.R")
+
 ###load data
+load("data/shake_study/3_omics/individual_variation/cluster")
+cluster <- 
+data.frame(subject_id = names(cluster),
+           cluster)
 ##metabolomics
-load("data/shake_study/metabolome_data_analysis/data_preparation/expression_data")
-load("data/shake_study/metabolome_data_analysis/data_preparation/sample_info")
-load("data/shake_study/metabolome_data_analysis/data_preparation/variable_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/expression_data")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/sample_info")
+load("data/shake_study/metabolomics_data_analysis/data_preparation/variable_info")
 load("data/shake_study/subject_info/subject_info")
 
-load("data/shake_study/metabolome_data_analysis/metabolites/DEG/anova_marker_name")
+load("data/shake_study/metabolomics_data_analysis/metabolites/DEG/anova_marker_name")
 
 expression_data1 <-
   expression_data[anova_marker_name, ]
@@ -55,7 +61,7 @@ variable_info3 <-
   variable_info[match(anova_marker_name, variable_info$variable_id), ] %>% 
   dplyr::mutate(mol_class = "cytokine")
 
-sxtTools::setwd_project()
+masstools::setwd_project()
 setwd("data/shake_study/3_omics/individual_scores")
 
 intersect_name <- 
@@ -116,7 +122,7 @@ load('fat_score/fat_score')
 load('inslulin_secreation_score/inslulin_secreation_score')
 load('inslulin_sensitivity_score/inslulin_sensitivity_score')
 
-load("subject_col")
+# load("subject_col")
 
 intersect_name =
   Reduce(f = intersect,
@@ -162,7 +168,6 @@ inslulin_sensitivity_score1 =
     1 - ((x - min(x))/(max(x) - min(x)))
   }) %>% 
   as.data.frame()
-
 
 all_feature_score = 
   rbind(
@@ -257,7 +262,6 @@ carb_expression_data <-
 # names(carb_cor_matrix) = unique(sample_info$subject_id)
 # save(carb_cor_matrix, file = "carb_score/carb_cor_matrix")
 load("carb_score/carb_cor_matrix")
-
 
 
 ###fat
@@ -567,7 +571,6 @@ inslulin_sensitivity_expression_data <-
 # save(inslulin_sensitivity_cor_matrix, file = "inslulin_sensitivity_score/inslulin_sensitivity_cor_matrix")
 load("inslulin_sensitivity_score/inslulin_sensitivity_cor_matrix")
 
-
 temp_data =
   rbind(
     carb_cor_matrix %>%
@@ -639,6 +642,8 @@ all_score =
 rownames(all_score) = 
   c("carb", "fat", "protein", "inslulin_secreation", "inslulin_sensitivity")
 
+# save(all_score, file = "all_score")
+load("all_score")
 text_df = 
   all_score %>%
   tibble::rownames_to_column(var = "class") %>%
@@ -696,7 +701,8 @@ plot =
     panel.grid.minor = element_blank(),
     axis.title = element_text(size = 10),
     axis.text = element_text(size = 10),
-    strip.text = element_text(size = 10),
+    strip.background = element_rect(fill = "#0099B47F"),
+    strip.text = element_text(color = "white", size = 10),
     panel.background = element_rect(fill = "transparent", color = NA),
     plot.background = element_rect(fill = "transparent", color = NA),
     legend.background = element_rect(fill = "transparent", color = NA)
@@ -711,7 +717,7 @@ plot
 library(GGally)
 
 # Check correlations (as scatterplots), distribution and print corrleation coefficient 
-load("subject_col")
+# load("subject_col")
 my_plot <-
   function(data,
            mapping,
@@ -825,25 +831,38 @@ sspg <- subject_info[match(colnames(all_score), subject_info$subject_id),]$sspg
 sex <- subject_info[match(colnames(all_score), subject_info$subject_id),]$sex
 ethnicity <- subject_info[match(colnames(all_score), subject_info$subject_id),]$ethnicity
 
+subject_info <- 
+subject_info %>% 
+  dplyr::left_join(cluster, by = "subject_id") %>% 
+  dplyr::rename(group = cluster)
+
+group <- cluster[match(colnames(all_score), cluster$subject_id),]$cluster
+
 library(ComplexHeatmap)
 
 ha1 = HeatmapAnnotation(
   gp = gpar(col = "black"),
   sex = factor(sex, levels = c("F", "M")),
   ethnicity = factor(ethnicity, levels = c("A", "B", "C", "H")),
+  # group = factor(as.character(group), levels = c("1", "2")),
   col = list(
     sex =
       c(
-        "M" = ggsci::pal_aaas()(n = 10)[2],
-        "F" = ggsci::pal_aaas()(n = 10)[10]
+        "M" = unname(sex_color["M"]),
+        "F" = unname(sex_color["F"])
       ),
     
     ethnicity = c(
-      "A" = ggsci::pal_aaas()(n = 10)[3],
-      "B" = ggsci::pal_aaas()(n = 10)[2],
-      "C" = ggsci::pal_d3()(10)[2],
-      "H" = "snow1"
+      "A" =  unname(ethnicity_color["A"]),
+      "B" = unname(ethnicity_color["B"]),
+      "C" = unname(ethnicity_color["C"]),
+      "H" = unname(ethnicity_color["H"])
     )
+    # group = c(
+    #   "1" =  ggsci::pal_d3()(10)[1],
+    #   "2" = ggsci::pal_d3()(10)[2]
+    # )
+    
   )
 )
 
@@ -856,7 +875,7 @@ ha2 =
     size = unit(5, "mm"),
     pch = 21,
     extend = 0.1,
-    pt_gp = gpar(fill = 3, fill = "red")
+    pt_gp = gpar(fill = 3, fill = ggsci::pal_aaas()(n = 10)[4])
   ),
   age = anno_lines(
     age,
@@ -865,7 +884,7 @@ ha2 =
     height = unit(3, "cm"),
     pch = 21,
     size = unit(5, "mm"),extend = 0.1,
-    pt_gp = gpar(cex = 3, fill = "red")
+    pt_gp = gpar(cex = 3, fill = ggsci::pal_aaas()(n = 10)[5])
   ),
   sspg = anno_lines(
     sspg,
@@ -876,7 +895,7 @@ ha2 =
     size = unit(5, "mm"),
     extend = 0.1,
     pt_gp = gpar(cex = 3, 
-                 fill = "red")
+                 fill = ggsci::pal_aaas()(n = 10)[6])
   )
   )
 
@@ -889,9 +908,9 @@ plot =
     all_score,
     rect_gp = gpar(col = "white"),
     clustering_distance_columns = "euclidean",
-    clustering_method_columns = "average",
+    clustering_method_columns = "complete",
     clustering_distance_rows = "euclidean",
-    clustering_method_rows = "average",
+    clustering_method_rows = "complete",
     col = col_fun,
     name = "Individual score",
     border = TRUE,
@@ -899,7 +918,6 @@ plot =
     bottom_annotation = ha2,
      column_names_rot = 45
   )
-
 
 library(dendextend)
 
@@ -950,8 +968,6 @@ plot = ggplotify::as.ggplot(plot)
 plot
 
 # ggsave(plot, filename = "all_individual_score_heatmap.pdf", width = 10, height = 7)
-
-
 
 cbind(name1, name2)
 
@@ -1044,7 +1060,7 @@ plot
 
 
 ####radar to show the plot for each person
-load("subject_col")
+# load("subject_col")
 library(ggiraphExtra)
 
 dir.create("radar_plot")
@@ -1194,13 +1210,6 @@ plot
 
 
 
-
-
-
-
-
-
-  
 ####PCA and t-sne analysis
 library(Rtsne)
 ##PCA
@@ -1414,11 +1423,11 @@ plot =
   theme(panel.grid.minor = element_blank())
 plot
 
-ggsave(
-  plot,
-  filename = file.path("radar_plot", 
-                       paste(paste(idx, collapse = "_"), 
-                             "_radar2.pdf", sep = "")),
-  width = 10,
-  height = 7
-) 
+# ggsave(
+#   plot,
+#   filename = file.path("radar_plot", 
+#                        paste(paste(idx, collapse = "_"), 
+#                              "_radar2.pdf", sep = "")),
+#   width = 10,
+#   height = 7
+# ) 
