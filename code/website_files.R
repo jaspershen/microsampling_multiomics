@@ -1,8 +1,8 @@
 # distill::create_website(dir = "website_files/", gh_pages = TRUE)
 ###convert r file to rmarkdown
-# knitr::spin("R/ensure_shake/metabolomics/milk_component_in_body.R", knit = FALSE)
+# knitr::spin("code/ensure_shake/metabolomics/milk_component_in_body.R", knit = FALSE)
 # ##copy rmarkdown to website_files
-# file.copy("R/ensure_shake/metabolomics/milk_component_in_body.Rmd",
+# file.copy("code/ensure_shake/metabolomics/milk_component_in_body.Rmd",
 #           to = "website_files/", overwrite = TRUE)
 ##add this in the begin of the rmarkdown file
 # ```{r setup, include=FALSE}

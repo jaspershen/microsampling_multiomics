@@ -1,0 +1,506 @@
+#' ---
+#' title: "CGM cortisol correlation"
+#' author: 
+#'   - name: "Xiaotao Shen" 
+#'     url: https://www.shenxt.info/
+#'     affiliation: Stanford School of Medicine
+#' date: "`r Sys.Date()`"
+#' site: distill::distill_website
+#' output: 
+#'   distill::distill_article:
+#'     code_folding: false
+#' ---
+
+no_function()
+
+library(tidyverse)
+library(here)
+rm(list = ls())
+
+source(here::here("code/tools.R"))
+source(here::here("code/modified_dtw.R"))
+source(here::here("code/lagged_correlation.R"))
+
+root_dir = here::here()
+
+####load data
+###CGM
+load(here::here("data/24_7_study/cgm/data_preparation/sample_info"))
+load(here::here("data/24_7_study/cgm/data_preparation/variable_info"))
+load(here::here("data/24_7_study/cgm/data_preparation/expression_data"))
+
+cgm_expression_data = expression_data
+cgm_sample_info = sample_info
+cgm_variable_info = variable_info
+
+###cortisol
+load(here::here("data/24_7_study/cortisol/data_preparation/sample_info"))
+load(here::here("data/24_7_study/cortisol/data_preparation/variable_info"))
+load(here::here("data/24_7_study/cortisol/data_preparation/expression_data"))
+
+cortisol_sample_info = sample_info
+cortisol_variable_info = variable_info
+cortisol_expression_data = expression_data
+
+load(here::here("data/24_7_study/summary_info/day_night_df"))
+
+####this is for the day night time
+day_night_df =
+  day_night_df %>%
+  dplyr::mutate(
+    start_time = as.POSIXct(hms::as_hms(start)),
+    end_time = as.POSIXct(hms::as_hms(end)),
+    week = format(day, "%a")
+  ) %>% 
+  dplyr::mutate(week = paste(
+    week,
+    lubridate::month(day),
+    lubridate::day(day),
+    sep = "-"
+  )) %>% 
+  dplyr::mutate(week = factor(week, unique(week)))
+
+######cgm vs cortisol
+###work directory
+###data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol
+####which time window
+temp_data = 
+  data.frame(time = cgm_sample_info$accurate_time,
+             value = as.numeric(cgm_expression_data[1, ]))
+
+temp_data %>% 
+  ggplot(aes(time, value)) +
+  geom_line(aes(group = 1))
+
+# integrated_info =
+# purrr::map(.x = c(1500, 1800, 2100, 2400, 2700, 3000), function(x){
+#   ###x is second
+#   time_seq=
+#     seq(from = temp_data$time[1], to = temp_data$time[nrow(temp_data)], by = x)
+# 
+#   info =
+#   purrr::map(1:(length(time_seq)-1), .f = function(idx){
+#     temp =
+#     temp_data %>%
+#       dplyr::filter(time >= time_seq[idx] & time < time_seq[idx+1])
+#     c(number = nrow(temp),
+#       mean = mean(temp$value),
+#       sd = sd(temp$value))
+#   }) %>%
+#     do.call(rbind, .) %>%
+#     as.data.frame()
+# })
+# 
+# save(integrated_info, file = "integrated_info")
+
+load(here::here("data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol/integrated_info"))
+
+integrated_info[[1]]$number %>% plot()
+integrated_info[[1]]$mean %>% plot()
+integrated_info[[1]]$sd %>% plot()
+
+#####---------------------------------------------------------------------------
+#####---------------------------------------------------------------------------
+###correlation between cgm and cortisols
+#global correlation
+
+# lagged_cor = rep(NA, nrow(cortisol_expression_data))
+# global_cor = rep(NA, nrow(cortisol_expression_data))
+# 
+# lagged_result = vector(mode = "list", length = nrow(cortisol_expression_data))
+# 
+# for(i in 1:nrow(cortisol_expression_data)){
+#   cat(i, " ")
+#   x = as.numeric(cortisol_expression_data[i, ])
+#   time1 = cortisol_sample_info$accurate_time
+#   y = as.numeric(cgm_expression_data[1, ])
+#   time2 = cgm_sample_info$accurate_time
+# 
+#   result = lagged_correlation(
+#     x = x,
+#     y = y,
+#     time1 = time1,
+#     time2 = time2,
+#     time_tol = 60/60,
+#     step = 5/60
+#   )
+#   lagged_result[[i]] = result
+# }
+# names(lagged_result) = rownames(cortisol_expression_data)
+# save(lagged_result, file = "lagged_correlation/lagged_result")
+
+load(
+  here::here(
+    "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+    "lagged_correlation/lagged_result"
+  )
+)
+
+lagged_cor = 
+  lagged_result %>% 
+  purrr::map(function(x){
+    x$max_cor
+  }) %>% 
+  unlist()
+
+global_cor = 
+  lagged_result %>% 
+  purrr::map(function(x){
+    x$global_cor
+  }) %>% 
+  unlist()
+
+shift_time = 
+  lagged_result %>% 
+  purrr::map(function(x){
+    x$shift_time[x$which_max_idx] %>% 
+      stringr::str_replace("\\(", "") %>% 
+      stringr::str_replace("\\]", "") %>%
+      stringr::str_split(",") %>% 
+      `[[`(1) %>% 
+      as.numeric() %>% 
+      mean()
+    
+  }) %>% 
+  unlist()
+
+names(lagged_cor) = names(global_cor) = 
+  cortisol_variable_info$variable_id
+
+cor_data =
+  data.frame(wearable = "CGM",
+             cortisol_variable_info,
+             global_cor = global_cor,
+             lagged_cor = lagged_cor,
+             shift_time = shift_time) %>% 
+  dplyr::filter(abs(lagged_cor) > 0.2)
+
+p_value = 
+  cor_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  purrr::map(function(x){
+    x = stringr::str_trim(x, side = "both")
+    result = lagged_result[[x[2]]]
+    
+    ###lagged correlation p value
+    x_value = result$x
+    y_value = result$y
+    
+    y_value = 
+      result$max_idx %>% 
+      purrr::map(function(idx){
+        mean(y_value[idx])
+      }) %>% 
+      unlist()
+    
+    x_value = x_value[!is.na(y_value)]
+    y_value = y_value[!is.na(y_value)]
+    lagged_cor_p = 
+      cor.test(x = x_value, y = y_value, method = "pearson")$p.value
+    
+    ###global correlation p value
+    x_value = result$x
+    y_value = result$y
+    
+    y_value = 
+      result$global_idx %>% 
+      purrr::map(function(idx){
+        mean(y_value[idx])
+      }) %>% 
+      unlist()
+    
+    x_value = x_value[!is.na(y_value)]
+    y_value = y_value[!is.na(y_value)]
+    global_cor_p = 
+      cor.test(x = x_value, y = y_value, method = "pearson")$p.value
+    
+    c(global_cor_p = global_cor_p,
+      lagged_cor_p = lagged_cor_p)
+  }) %>% 
+  do.call(rbind, .) %>% 
+  as.data.frame()
+
+cor_data = 
+  data.frame(cor_data, p_value)
+
+cor_data$global_cor_p_adjust = p.adjust(cor_data$global_cor_p, method = "BH")
+cor_data$lagged_cor_p_adjust = p.adjust(cor_data$lagged_cor_p, method = "BH")
+
+library(openxlsx)
+# wb <- createWorkbook()
+# modifyBaseFont(wb, fontSize = 12, fontName = "Time New Roma")
+# addWorksheet(wb, sheetName = "CGM cortisol global cor",
+#              gridLines = TRUE)
+# freezePane(wb, sheet = 1, firstRow = TRUE, firstCol = TRUE)
+# writeDataTable(wb, sheet = 1, x = cor_data,
+#                colNames = TRUE, rowNames = TRUE)
+# saveWorkbook(
+#   wb,
+#   here::here(
+#     "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#     "lagged_correlation/cor_data.xlsx"
+#   ),
+#   overwrite = TRUE
+# )
+
+##output the top 10 negative and top 100 positive
+pos_top_10 =
+  cor_data %>% 
+  dplyr::arrange(lagged_cor) %>% 
+  dplyr::filter(lagged_cor > 0) %>% 
+  tail(10)
+
+neg_top_10 =
+  cor_data %>% 
+  dplyr::arrange(lagged_cor) %>% 
+  dplyr::filter(lagged_cor < 0) %>% 
+  head(10)
+
+temp = 
+  rbind(neg_top_10,
+        pos_top_10)
+
+# for (i in 1:nrow(temp)) {
+#   cat(i, " ")
+#   plot1 =
+#   lagged_alignment_plot(object = lagged_result[[temp$variable_id[i]]],
+#                         day_night_df = day_night_df,
+#                         internal_omics_color = class_color["cortisol"],
+#                         wearable_color = wearable_color["cgm"],
+#                         internal_omics_name = temp$mol_name[i],
+#                         warable_name = "CGM",
+#                         which = "max",
+#                         x_limit = c(1,1000),
+#                         non_matched_point_size = 0.1,
+#                         wearable_point_size = 0.5,
+#                         internal_omics_point_size = 2,
+#                         integrated = FALSE)
+# 
+#   plot2 =
+#     lagged_alignment_plot(object = lagged_result[[temp$variable_id[i]]],
+#                           day_night_df = day_night_df,
+#                           internal_omics_color = class_color["cortisol"],
+#                           wearable_color = wearable_color["cgm"],
+#                           internal_omics_name = temp$mol_name[i],
+#                           warable_name = "CGM",
+#                           which = "max",
+#                           x_limit = c(1,10),
+#                           non_matched_point_size = 0.1,
+#                           wearable_point_size = 0.5,
+#                           internal_omics_point_size = 2,
+#                           integrated = FALSE)
+# 
+#   plot3 =
+#     lagged_alignment_plot(object = lagged_result[[temp$variable_id[i]]],
+#                           day_night_df = day_night_df,
+#                           internal_omics_color = class_color["cortisol"],
+#                           wearable_color = wearable_color["cgm"],
+#                           internal_omics_name = temp$mol_name[i],
+#                           warable_name = "CGM",
+#                           which = "max",
+#                           x_limit = c(1,1000),
+#                           non_matched_point_size = 0.1,
+#                           wearable_point_size = 0.5,
+#                           internal_omics_point_size = 2,
+#                           integrated = TRUE)
+# 
+# 
+#   plot4 =
+#     lagged_alignment_plot(object = lagged_result[[temp$variable_id[i]]],
+#                           day_night_df = day_night_df,
+#                           internal_omics_color = class_color["cortisol"],
+#                           wearable_color = wearable_color["cgm"],
+#                           internal_omics_name = temp$mol_name[i],
+#                           warable_name = "CGM",
+#                           which = "max",
+#                           x_limit = c(1,30),
+#                           non_matched_point_size = 3,
+#                           wearable_point_size = 3,
+#                           internal_omics_point_size = 3,
+#                           integrated = TRUE)
+# 
+#   name = paste("CGM vs",temp$mol_name[i])
+#   ggsave(
+#     plot1,
+#     filename = here::here(
+#       "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#       file.path("cor_plot", paste(name, "plot1.pdf", sep = ""))
+#     ),
+#     width = 20,
+#     height = 7
+#   )
+# 
+#   ggsave(
+#     plot2,
+#     filename = here::here(
+#       "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#       file.path("cor_plot", paste(name, "plot2.pdf", sep = ""))
+#     ),
+#     width = 20,
+#     height = 7
+#   )
+# 
+#   ggsave(
+#     plot3,
+#     filename =
+#       here::here(
+#         "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#         file.path("cor_plot", paste(name, "plot3.pdf", sep = ""))
+#       ),
+#     width = 20,
+#     height = 7
+#   )
+# 
+#   ggsave(
+#     plot4,
+#     filename =
+#       here::here(
+#         "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#         file.path("cor_plot", paste(name, "plot4.pdf", sep = ""))
+#       ),
+#     width = 20,
+#     height = 7
+#   )
+# }
+
+cor_data %>% 
+  ggplot(aes(global_cor, lagged_cor)) +
+  geom_point()
+
+##cortisol and CGM
+## output the correlation changes according to shift time
+# for(i in 1:length(lagged_result)){
+#   cat(i, "")
+#   result = lagged_result[[i]]
+#   x = result$x
+#   y = result$max_idx %>%
+#     lapply(function(x) {
+#       mean(result$y[x])
+#     }) %>%
+#     unlist()
+# 
+#   temp_data =
+#     result[c("shift_time", "all_cor")] %>%
+#     do.call(cbind, .) %>%
+#     as.data.frame() %>%
+#     dplyr::mutate(shift_time = stringr::str_replace(shift_time, "\\(", "")) %>%
+#     dplyr::mutate(shift_time = stringr::str_replace(shift_time, "\\]", "")) %>%
+#     dplyr::mutate(shift_time = stringr::str_split(shift_time, ",")) %>%
+#     dplyr::mutate(all_cor = round(as.numeric(all_cor), 4))
+# 
+#   temp_data$shift_time =
+#     temp_data$shift_time %>%
+#     purrr::map(function(x){
+#       mean(as.numeric(x))
+#     }) %>%
+#     unlist()
+# 
+#   plot =
+#   temp_data %>%
+#     ggplot(aes(x = shift_time, y = all_cor)) +
+#     geom_vline(xintercept = temp_data$shift_time[result$which_max_idx],
+#                color = "red") +
+#     geom_hline(yintercept = 0) +
+#     annotate(geom = "text",
+#              x = temp_data$shift_time[result$which_max_idx],
+#              y = result$max_cor, label = result$max_cor) +
+#     annotate(geom = "text",
+#              x = temp_data$shift_time[result$which_global_idx],
+#              y = result$global_cor, label = result$global_cor) +
+#     geom_point() +
+#     geom_line(aes(group = 1)) +
+#     base_theme +
+#     labs(x = "Shift time (Omics - CGM, min)",
+#          y = "Pearsom correlation") +
+#     theme()
+#   name =
+#     cortisol_variable_info$mol_name[match(names(lagged_result)[i], cortisol_variable_info$variable_id)]
+# 
+#   ggsave(
+#     plot,
+#     file = here::here(
+#       "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#       file.path("shift_time_vs_cor", paste(name, ".pdf", sep = ""))
+#     ),
+#     width = 8,
+#     height = 7
+#   )
+# }
+
+important_cortisol = 
+  rbind(
+    cor_data %>%
+      dplyr::filter(lagged_cor > 0) %>%
+      # dplyr::filter(lagged_cor > quantile(lagged_cor, 0.75)) %>%
+      dplyr::mutate(class1 = "positive correlation"),
+    cor_data %>%
+      dplyr::filter(lagged_cor < 0) %>%
+      # dplyr::filter(lagged_cor < quantile(lagged_cor, 0.25)) %>%
+      dplyr::mutate(class1 = "negative correlation")
+  )
+
+# save(
+#   important_cortisol,
+#   file = here::here(
+#     "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#     "important_cortisol"
+#   )
+# )
+# 
+# wb <- createWorkbook()
+# modifyBaseFont(wb, fontSize = 12, fontName = "Time New Roma")
+# addWorksheet(wb, sheetName = "CGM cortisol global cor",
+#              gridLines = TRUE)
+# freezePane(wb, sheet = 1, firstRow = TRUE, firstCol = TRUE)
+# writeDataTable(wb, sheet = 1, x = important_cortisol,
+#                colNames = TRUE, rowNames = TRUE)
+# saveWorkbook(
+#   wb,
+#   here::here(
+#     "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+#     "cgm_important_cortisol.xlsx"
+#   ),
+#   overwrite = TRUE
+# )
+
+load(
+  here::here(
+    "data/24_7_study/wearable_omics_correlation/cgm_omics_correlation/cgm_cortisol",
+    "important_cortisol"
+  )
+)
+
+important_cortisol
+
+
+######-----------------------------------------------------------------------------
+# knitr::spin(
+#   hair = here::here(
+#     "code/24_7_mike/wearable_omics_correlation/CGM/cgm_cortisol_correlation.R"
+#   ),
+#   knit = FALSE
+# )
+# 
+# file.copy(from = here::here("code/24_7_mike/wearable_omics_correlation/CGM/cgm_cortisol_correlation.Rmd"),
+#           to = here::here("website_files/"), overwrite = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

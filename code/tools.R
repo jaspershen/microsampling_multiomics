@@ -537,7 +537,7 @@ volcano_plot <- function(fc,
     plot <-
       plot +
       ggrepel::geom_text_repel(mapping = aes(fc, p_value, label = variable_id),
-                               data = temp_data[temp_data$class == "Yes", ])
+                               data = temp_data[temp_data$class == "Yes",])
   }
   
   plot
@@ -545,131 +545,132 @@ volcano_plot <- function(fc,
 }
 
 
-plot_silhouette <- function(sil,
-                            color = "red") {
-  temp_data <-
-    data.frame(
-      cluster = sil[, 1],
-      neighbor = sil[, 2],
-      sil_width = sil[, 3],
-      stringsAsFactors = FALSE
-    )
-  temp_data <-
-    temp_data %>%
-    dplyr::mutate(cluster = as.character(cluster)) %>%
-    dplyr::arrange(desc(cluster), sil_width) %>%
-    dplyr::mutate(index = 1:nrow(temp_data))
-  
-  plot <-
-    temp_data %>%
-    ggplot() +
-    geom_bar(
-      aes(
-        y = sil_width,
-        x = index,
-        fill = cluster,
-        color = cluster
-      ),
-      stat = "identity",
-      show.legend = FALSE
-    ) +
-    geom_hline(yintercept = 0) +
-    ggsci::scale_color_d3() +
-    ggsci::scale_fill_d3() +
-    scale_y_continuous(expand = expansion(mult = c(0, .2))) +
-    theme_classic() +
-    labs(
-      y = paste(
-        "Silhousette width",
-        "\nAverage silhousettle widht:",
-        round(mean(temp_data$sil_width), 2)
-      ),
-      x = ""
-    ) +
-    theme(
-      axis.text.x = element_text(size = 12),
-      axis.title.x = element_text(size = 13),
-      axis.ticks.y = element_blank(),
-      axis.text.y = element_blank(),
-      axis.line.y = element_blank()
-    ) +
-    coord_flip()
-  
-  plot <-
-    plot +
-    ggplot2::annotate(
-      geom = "text",
-      y = 0,
-      x = max(temp_data$index),
-      label = paste("n =", nrow(temp_data)),
-      color = "black",
-      hjust = -0.5,
-      vjust = -1,
-      size = 4
-    )
-  
-  cluster_num <- as.numeric(max(temp_data$cluster))
-  title <-
-    paste(cluster_num, "clusters Cj", "\n", "j: nj | avei<Cj Si")
-  
-  plot <-
-    plot +
-    ggplot2::annotate(
-      geom = "text",
-      y = max(temp_data$sil_width),
-      x = max(temp_data$index),
-      label = title,
-      color = "black",
-      hjust = 0,
-      vjust = 0,
-      size = 4
-    )
-  
-  class <- temp_data$cluster %>%
-    unique() %>%
-    sort() %>%
-    rev()
-  
-  cluster_num <-
-    temp_data %>%
-    dplyr::group_by(cluster) %>%
-    dplyr::summarise(n = n()) %>%
-    dplyr::ungroup() %>%
-    dplyr::arrange(desc(cluster)) %>%
-    dplyr::pull(n)
-  
-  cluster_num <-
-    sapply(1:length(cluster_num), function(x) {
-      if (x == 1) {
-        cluster_num[x] / 2
-      } else{
-        tail(cumsum(cluster_num[1:(x - 1)]), 1)  +  cluster_num[x] / 2
-      }
-    })
-  
-  for (i in 1:length(class)) {
-    label <-
-      paste(class[i],
-            ":",
-            sum(temp_data$cluster == class[i]),
-            "|",
-            round(mean(temp_data$sil_width[temp_data$cluster == class[i]]), 2))
+plot_silhouette <-
+  function(sil,
+           color = "red") {
+    temp_data <-
+      data.frame(
+        cluster = sil[, 1],
+        neighbor = sil[, 2],
+        sil_width = sil[, 3],
+        stringsAsFactors = FALSE
+      )
+    temp_data <-
+      temp_data %>%
+      dplyr::mutate(cluster = as.character(cluster)) %>%
+      dplyr::arrange(desc(cluster), sil_width) %>%
+      dplyr::mutate(index = 1:nrow(temp_data))
+    
+    plot <-
+      temp_data %>%
+      ggplot() +
+      geom_bar(
+        aes(
+          y = sil_width,
+          x = index,
+          fill = cluster,
+          color = cluster
+        ),
+        stat = "identity",
+        show.legend = FALSE
+      ) +
+      geom_hline(yintercept = 0) +
+      ggsci::scale_color_d3() +
+      ggsci::scale_fill_d3() +
+      scale_y_continuous(expand = expansion(mult = c(0, .2))) +
+      theme_classic() +
+      labs(
+        y = paste(
+          "Silhousette width",
+          "\nAverage silhousettle widht:",
+          round(mean(temp_data$sil_width), 2)
+        ),
+        x = ""
+      ) +
+      theme(
+        axis.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 13),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.line.y = element_blank()
+      ) +
+      coord_flip()
+    
+    plot <-
+      plot +
+      ggplot2::annotate(
+        geom = "text",
+        y = 0,
+        x = max(temp_data$index),
+        label = paste("n =", nrow(temp_data)),
+        color = "black",
+        hjust = -0.5,
+        vjust = -1,
+        size = 4
+      )
+    
+    cluster_num <- as.numeric(max(temp_data$cluster))
+    title <-
+      paste(cluster_num, "clusters Cj", "\n", "j: nj | avei<Cj Si")
+    
     plot <-
       plot +
       ggplot2::annotate(
         geom = "text",
         y = max(temp_data$sil_width),
-        x = cluster_num[i],
-        label = label,
+        x = max(temp_data$index),
+        label = title,
         color = "black",
         hjust = 0,
         vjust = 0,
         size = 4
       )
+    
+    class <- temp_data$cluster %>%
+      unique() %>%
+      sort() %>%
+      rev()
+    
+    cluster_num <-
+      temp_data %>%
+      dplyr::group_by(cluster) %>%
+      dplyr::summarise(n = n()) %>%
+      dplyr::ungroup() %>%
+      dplyr::arrange(desc(cluster)) %>%
+      dplyr::pull(n)
+    
+    cluster_num <-
+      sapply(1:length(cluster_num), function(x) {
+        if (x == 1) {
+          cluster_num[x] / 2
+        } else{
+          tail(cumsum(cluster_num[1:(x - 1)]), 1)  +  cluster_num[x] / 2
+        }
+      })
+    
+    for (i in 1:length(class)) {
+      label <-
+        paste(class[i],
+              ":",
+              sum(temp_data$cluster == class[i]),
+              "|",
+              round(mean(temp_data$sil_width[temp_data$cluster == class[i]]), 2))
+      plot <-
+        plot +
+        ggplot2::annotate(
+          geom = "text",
+          y = max(temp_data$sil_width),
+          x = cluster_num[i],
+          label = label,
+          color = "black",
+          hjust = 0,
+          vjust = 0,
+          size = 4
+        )
+    }
+    
+    plot
   }
-  
-  plot
-}
 
 
 
@@ -689,16 +690,18 @@ base_theme =
 
 
 lipid_class_color =
-  c("CE" = ggsci::pal_npg()(n=10)[1],
-    "CER" = ggsci::pal_npg()(n=10)[2],
-    "LPC" = ggsci::pal_npg()(n=10)[3],
-    "PC" = ggsci::pal_npg()(n=10)[4],
-    "PE" = ggsci::pal_npg()(n=10)[5],
-    "PI" = ggsci::pal_npg()(n=10)[6],
-    "SM" = ggsci::pal_npg()(n=10)[7],
-    "DAG" = ggsci::pal_npg()(n=10)[8],
-    "LPE" = ggsci::pal_npg()(n=10)[9],
-    "TAG" = ggsci::pal_npg()(n=10)[10])
+  c(
+    "CE" = ggsci::pal_npg()(n = 10)[1],
+    "CER" = ggsci::pal_npg()(n = 10)[2],
+    "LPC" = ggsci::pal_npg()(n = 10)[3],
+    "PC" = ggsci::pal_npg()(n = 10)[4],
+    "PE" = ggsci::pal_npg()(n = 10)[5],
+    "PI" = ggsci::pal_npg()(n = 10)[6],
+    "SM" = ggsci::pal_npg()(n = 10)[7],
+    "DAG" = ggsci::pal_npg()(n = 10)[8],
+    "LPE" = ggsci::pal_npg()(n = 10)[9],
+    "TAG" = ggsci::pal_npg()(n = 10)[10]
+  )
 
 
 
@@ -759,35 +762,115 @@ week_color =
 
 
 tp_color <-
-  c("0" = ggsci::pal_d3()(n=5)[1],
-    "30" = ggsci::pal_d3()(n=5)[2],
-    "60" = ggsci::pal_d3()(n=5)[3],
-    "120" = ggsci::pal_d3()(n=5)[4],
-    "240" = ggsci::pal_d3()(n=5)[5])
+  c(
+    "0" = ggsci::pal_d3()(n = 5)[1],
+    "30" = ggsci::pal_d3()(n = 5)[2],
+    "60" = ggsci::pal_d3()(n = 5)[3],
+    "120" = ggsci::pal_d3()(n = 5)[4],
+    "240" = ggsci::pal_d3()(n = 5)[5]
+  )
 
 subject_col <-
-  c("#543005", "#5F3606", "#6A3D07", "#764408", "#814B09", "#8D520A", "#975C12", "#A26519",
-    "#AC6F20", "#B77927", "#C08431", "#C79141", "#CD9F51", "#D4AC62", "#DAB972", "#DDC584",
-    "#D8CD9A", "#D3D5AF", "#CEDDC4", "#C9E5DA", "#BFE7E1", "#B1E1D9", "#A2DBD2", "#94D5CB",
-    "#85CFC3", "#76C6BA", "#67BBB0", "#57AFA6", "#48A49B", "#389991", "#2D8F87", "#22857D",
-    "#177B73", "#0D7169", "#02675F", "#005E55", "#00554C", "#004D42", "#004439", "#003C30")
+  c(
+    "#543005",
+    "#5F3606",
+    "#6A3D07",
+    "#764408",
+    "#814B09",
+    "#8D520A",
+    "#975C12",
+    "#A26519",
+    "#AC6F20",
+    "#B77927",
+    "#C08431",
+    "#C79141",
+    "#CD9F51",
+    "#D4AC62",
+    "#DAB972",
+    "#DDC584",
+    "#D8CD9A",
+    "#D3D5AF",
+    "#CEDDC4",
+    "#C9E5DA",
+    "#BFE7E1",
+    "#B1E1D9",
+    "#A2DBD2",
+    "#94D5CB",
+    "#85CFC3",
+    "#76C6BA",
+    "#67BBB0",
+    "#57AFA6",
+    "#48A49B",
+    "#389991",
+    "#2D8F87",
+    "#22857D",
+    "#177B73",
+    "#0D7169",
+    "#02675F",
+    "#005E55",
+    "#00554C",
+    "#004D42",
+    "#004439",
+    "#003C30"
+  )
 
-names(subject_col) <- 
-  c("S1",  "S2",  "S3",  "S4",  "S5",  "S6",  "S7",  "S8",  "S9",  "S10", "S11", "S12", "S13", "S14",
-    "S15", "S16", "S17", "S18", "S19", "S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28",
-    "S29", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S38", "S39", "S40")
+names(subject_col) <-
+  c(
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S8",
+    "S9",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14",
+    "S15",
+    "S16",
+    "S17",
+    "S18",
+    "S19",
+    "S20",
+    "S21",
+    "S22",
+    "S23",
+    "S24",
+    "S25",
+    "S26",
+    "S27",
+    "S28",
+    "S29",
+    "S30",
+    "S31",
+    "S32",
+    "S33",
+    "S34",
+    "S35",
+    "S36",
+    "S37",
+    "S38",
+    "S39",
+    "S40"
+  )
 
 
-sex_color <- 
+sex_color <-
   c("M" = ggsci::pal_aaas()(n = 10)[10],
     "F" = ggsci::pal_aaas()(n = 10)[2])
 
 
-ethnicity_color <- 
-  c("A" = ggsci::pal_nejm()(n=8)[1],
-    "B" = ggsci::pal_nejm()(n=8)[2],
-    "C" = ggsci::pal_nejm()(n=8)[3],
-    "H" = ggsci::pal_nejm()(n=8)[5])
+ethnicity_color <-
+  c(
+    "A" = ggsci::pal_nejm()(n = 8)[1],
+    "B" = ggsci::pal_nejm()(n = 8)[2],
+    "C" = ggsci::pal_nejm()(n = 8)[3],
+    "H" = ggsci::pal_nejm()(n = 8)[5]
+  )
 
 match_data = function(sample_info1,
                       expression_data1,
@@ -889,7 +972,7 @@ match_data = function(sample_info1,
     expression_data1[, remain_idx]
   
   sample_info1 =
-    sample_info1[remain_idx, ]
+    sample_info1[remain_idx,]
   
   idx = idx[remain_idx]
   
@@ -1115,8 +1198,8 @@ lag_cor =
         .f = function(idx) {
           temp =
             cor.test(
-              as.numeric(temp_data$expression_data2[1,]),
-              as.numeric(temp_data$expression_data1[idx,]),
+              as.numeric(temp_data$expression_data2[1, ]),
+              as.numeric(temp_data$expression_data1[idx, ]),
               method = "pearson"
             )
           c(temp$estimate, temp$p.value)
@@ -1151,7 +1234,7 @@ time_plot = function(x,
   x = data.frame(time, value = as.numeric(x),
                  stringsAsFactors = FALSE)
   if (!is.null(y)) {
-    y = data.frame(time, value = as.numeric(y), 
+    y = data.frame(time, value = as.numeric(y),
                    stringsAsFactors = FALSE)
   }
   
@@ -1506,7 +1589,8 @@ parlDiag <- function(Parties,
       start = cc[1:length(shares)],
       end = c(cc[2:length(shares)], pi / 2),
       fill = Parties
-    ), color = "white") +
+    ),
+    color = "white") +
     switch(is.null(cols) + 1, scale_fill_manual(values = cols), NULL) +
     switch(is.null(cols) + 1, scale_color_manual(values = cols), NULL) +
     # for label and line positions, just scale sin & cos to get in and out of arc
@@ -1544,7 +1628,9 @@ parlDiag <- function(Parties,
     geom_point(aes(x = 0.9 * labelX, y = 0.9 * labelY)) +
     geom_text(aes(x = 0, y = 0, label = switch(
       repr,
-      "absolute" = (sprintf("Total: %i internal moleculars", sum(shares))),
+      "absolute" = (sprintf(
+        "Total: %i internal moleculars", sum(shares)
+      )),
       "proportion" = ""
     )),
     fontface = "bold",
@@ -1559,22 +1645,23 @@ parlDiag <- function(Parties,
 
 
 ######get the correlation matrix
-get_cor_matrix = function(data, 
-                          c, 
+get_cor_matrix = function(data,
+                          c,
                           scale = TURE,
                           method = c("spearman", "pearson"),
-                          which = c("median", "mean")){
+                          which = c("median", "mean")) {
   method = match.arg(method)
   which = match.arg(which)
-  data = 
-    data %>% 
-    apply(1, function(x){
-      (x - mean(x))/sd(x)}) %>% 
-    t() %>% 
+  data =
+    data %>%
+    apply(1, function(x) {
+      (x - mean(x)) / sd(x)
+    }) %>%
+    t() %>%
     as.data.frame()
   
   ###get the distance for each two cluster
-  cluster = 
+  cluster =
     sort(unique(c$cluster))
   
   cluster[-length(cluster)] %>%
@@ -1583,8 +1670,8 @@ get_cor_matrix = function(data,
       purrr::map((i + 1):length(cluster),
                  .f = function(j) {
                    cluster2 = which(c$cluster == j)
-                   data1 = data[cluster1, ]
-                   data2 = data[cluster2, ]
+                   data1 = data[cluster1,]
+                   data2 = data[cluster2,]
                    all_cor =
                      get_cor_for_each_variable(data1 = data1,
                                                data2 = data2,
@@ -1594,39 +1681,55 @@ get_cor_matrix = function(data,
                    # } else{
                    #   value = mean(all_cor)
                    # }
-                   data.frame(from = i, to = j, cor = unname(all_cor))
-                 } 
-      ) %>% 
-        do.call(rbind, .) %>% 
+                   data.frame(from = i,
+                              to = j,
+                              cor = unname(all_cor))
+                 }
+      ) %>%
+        do.call(rbind, .) %>%
         as.data.frame()
-    }) %>% 
-    do.call(rbind, .) %>% 
+    }) %>%
+    do.call(rbind, .) %>%
     as.data.frame()
-} 
+}
 
 get_cor_for_each_variable =
-  function(data1, data2, method = c("spearman", "pearson")) {
+  function(data1,
+           data2,
+           method = c("spearman", "pearson")) {
     method = match.arg(method)
-    purrr::map(as.data.frame(t(data1)), .f = function(x){
-      purrr::map(as.data.frame(t(data2)), .f = function(y){
-        cor(x, y, method = method)
-      }) %>% 
-        unlist()
-    }) %>% 
+    purrr::map(
+      as.data.frame(t(data1)),
+      .f = function(x) {
+        purrr::map(
+          as.data.frame(t(data2)),
+          .f = function(y) {
+            cor(x, y, method = method)
+          }
+        ) %>%
+          unlist()
+      }
+    ) %>%
       unlist()
   }
 
 
 
-modularity_plot = function(subnetworks){
-  plot <- 
+modularity_plot = function(subnetworks) {
+  plot <-
     ggplot(
-      data.frame(index = 1:length(subnetworks$modularity),
-                 modu = subnetworks$modularity, stringsAsFactors = FALSE),
-      aes(index, modu) 
+      data.frame(
+        index = 1:length(subnetworks$modularity),
+        modu = subnetworks$modularity,
+        stringsAsFactors = FALSE
+      ),
+      aes(index, modu)
     ) +
-    geom_vline(xintercept = which.max(subnetworks$modularity), 
-               linetype = 2, colour = "#800000B2") + 
+    geom_vline(
+      xintercept = which.max(subnetworks$modularity),
+      linetype = 2,
+      colour = "#800000B2"
+    ) +
     labs(x = "Community analysis iteration", y = "Modularity") +
     geom_line(colour = "black") +
     # geom_point() +
@@ -1635,21 +1738,27 @@ modularity_plot = function(subnetworks){
           axis.text = element_text(size = 12))
   
   plot <-
-    plot + 
-    ggplot2::annotate(geom = "point", 
-                      x = which.max(subnetworks$modularity),
-                      y = max(subnetworks$modularity), 
-                      size = 3, 
-                      colour = "red") +
-    annotate(geom = "text", 
-             x = which.max(subnetworks$modularity),
-             y = max(subnetworks$modularity), 
-             label = paste("(",  which.max(subnetworks$modularity),
-                           ",", 
-                           max(subnetworks$modularity) %>% round(3),
-                           ")"),
-             size = 5,
-             colour = "red"
+    plot +
+    ggplot2::annotate(
+      geom = "point",
+      x = which.max(subnetworks$modularity),
+      y = max(subnetworks$modularity),
+      size = 3,
+      colour = "red"
+    ) +
+    annotate(
+      geom = "text",
+      x = which.max(subnetworks$modularity),
+      y = max(subnetworks$modularity),
+      label = paste(
+        "(",
+        which.max(subnetworks$modularity),
+        ",",
+        max(subnetworks$modularity) %>% round(3),
+        ")"
+      ),
+      size = 5,
+      colour = "red"
     )
   
   plot
@@ -1669,7 +1778,7 @@ optimize_loess_span =
             .f = function(idx) {
               temp_result =
                 loess(formula = y ~ x,
-                      data = temp_data[-idx, ],
+                      data = temp_data[-idx,],
                       span = span)
               prediction =
                 try(predict(object = temp_result,
@@ -1700,15 +1809,15 @@ optimize_loess_span =
     
     # span_rmse
     
-    plot = 
-      data.frame(x, y) %>% 
+    plot =
+      data.frame(x, y) %>%
       ggplot(aes(x, y)) +
       geom_point(size = 5) +
       # geom_line() +
       base_theme
     
-    span_rmse = 
-      span_rmse %>% 
+    span_rmse =
+      span_rmse %>%
       dplyr::filter(!is.na(rmse))
     idx = which.min(span_rmse$rmse)
     # for(i in 1:nrow(span_rmse)){
@@ -1721,8 +1830,8 @@ optimize_loess_span =
       )
     # }
     
-    plot = 
-      plot + 
+    plot =
+      plot +
       ggplot2::ggtitle(label = paste("Span: ", span_rmse$span[idx])) +
       theme(title = element_text(colour = ggsci::pal_lancet()(n = 9)[idx]))
     
@@ -1747,8 +1856,6 @@ match_time = function(time1, time2, tol = 1) {
                  time2 = time2[idx])
       
     }
-  }) %>% 
+  }) %>%
     dplyr::bind_rows()
-} 
-
-
+}
