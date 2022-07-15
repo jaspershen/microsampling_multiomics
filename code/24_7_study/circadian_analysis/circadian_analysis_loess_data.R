@@ -63,7 +63,7 @@ grep("Salicylic", variable_info$mol_name, value = TRUE)
 grep("Salicylic", variable_info$mol_name, value = FALSE)
 
 time_plot(
-  x = as.numeric(expression_data[1233, ]),
+  x = as.numeric(expression_data[1233,]),
   time = sample_info$accurate_time,
   day_night_df = day_night_df,
   add_point = TRUE,
@@ -110,7 +110,7 @@ sample_info$time
 
 data.frame(
   time = sample_info$time,
-  value = as.numeric(expression_data["lipid_135", ]),
+  value = as.numeric(expression_data["lipid_135",]),
   day = as.character(sample_info$day)
 ) %>%
   ggplot(aes(time, value)) +
@@ -194,10 +194,10 @@ idx
 # save(new_result, file = "new_result")
 load("new_result")
 
-result <- 
-new_result[idx,]
+result <-
+  new_result[idx, ]
 
-write.csv(result, "circidian_marker.csv", row.names = FALSE)
+# write.csv(result, "circidian_marker.csv", row.names = FALSE)
 
 load(here::here("data/24_7_study/summary_info/day_night_df"))
 
@@ -577,7 +577,7 @@ cluster_info <-
 cluster_info <- readxl::read_xlsx("cluster_info.xlsx")
 #####output the expression data of different clusters
 
-#plot for each cluster
+######plot for each cluster
 # for (cluster_idx in 1:clust) {
 #   cat(cluster_idx, " ")
 #   dir.create(paste("cluster", cluster_idx, sep = "_"))
@@ -585,22 +585,22 @@ cluster_info <- readxl::read_xlsx("cluster_info.xlsx")
 #     cluster_info %>%
 #     dplyr::filter(cluster_idx == cluster_idx) %>%
 #     dplyr::select(1, 1 + cluster_idx)
-#
+# 
 #   colnames(cluster_data) <- c("variable_id", "membership")
-#
+# 
 #   cluster_data <-
 #     cluster_data %>%
 #     dplyr::filter(membership > 0.9)
-#
+# 
 #   openxlsx::write.xlsx(x = cluster_data,
 #                        file = file.path(
 #                          paste("cluster", cluster_idx, sep = "_"),
 #                          paste("cluster", cluster_idx, ".xlsx", sep = "")
 #                        ),
 #                        asTable = TRUE, overwrite = TRUE)
-#
+# 
 # ###cluster plot
-#
+# 
 #   temp =
 #     temp_data[cluster_data$variable_id, ] %>%
 #     data.frame(
@@ -619,20 +619,20 @@ cluster_info <- readxl::read_xlsx("cluster_info.xlsx")
 #                        dplyr::mutate(time = as.character(time)) %>%
 #                        dplyr::rename(accurate_time = time.1),
 #                      by = c("sample_id" = "time"))
-#
+# 
 #   temp =
 #   temp %>%
 #     dplyr::left_join(variable_info[,c("mol_name", "data_type")],
 #                      by = c("variable_id" =
 #                               "mol_name"))
-#
+# 
 #   title =
 #   temp %>% dplyr::distinct(variable_id, .keep_all = TRUE) %>%
 #     pull(data_type) %>%
 #     table()
 #   title =
 #   paste(paste(names(title), as.numeric(title)), collapse = ";")
-#
+# 
 #   plot <-
 #     ggplot() +
 #     geom_rect(
@@ -676,9 +676,9 @@ cluster_info <- readxl::read_xlsx("cluster_info.xlsx")
 #       y = "Z-score",
 #       title = title
 #     )
-#
+# 
 #   plot
-#
+# 
 #   ggsave(
 #     plot,
 #     filename = file.path(paste("cluster", cluster_idx, sep = "_"),
@@ -801,8 +801,6 @@ cluster4 %>%
   table()
 
 
-
-
 # ######organize plot in plot folder
 # 1:length(list(cluster1, cluster2, cluster3, cluster4, cluster5)) %>%
 #   purrr::map(function(idx){
@@ -821,8 +819,6 @@ cluster4 %>%
 #               to = file.path("plot", paste("cluster", idx, sep = "_")),
 #               overwrite = TRUE, recursive = TRUE)
 #   })
-
-
 
 dim(cluster2)
 
@@ -894,8 +890,6 @@ cluster2_new %>%
   dplyr::filter(new_consistence_score > 0.5) %>%
   pull(variable_id.y)
 
-
-
 ######component for each cluster
 ###change cluster name
 ###1 - 4
@@ -950,7 +944,6 @@ plot =
   )
 
 plot
-
 
 # ggsave(plot, filename = "module1-5 component.pdf", width = 5, height = 8)
 
@@ -1442,7 +1435,7 @@ subnetwork =
 
 ####subnetwork1
 node_data1 =
-  node_data[subnetwork$membership == 1,]
+  node_data[subnetwork$membership == 1, ]
 
 edge_data1 =
   edge_data %>%
@@ -1515,7 +1508,7 @@ plot
 
 ####subnetwork2
 node_data2 =
-  node_data[subnetwork$membership == 2,]
+  node_data[subnetwork$membership == 2, ]
 
 edge_data2 =
   edge_data %>%
@@ -1595,7 +1588,7 @@ plot
 
 ####subnetwork3
 node_data3 =
-  node_data[subnetwork$membership == 3,]
+  node_data[subnetwork$membership == 3, ]
 
 edge_data3 =
   edge_data %>%

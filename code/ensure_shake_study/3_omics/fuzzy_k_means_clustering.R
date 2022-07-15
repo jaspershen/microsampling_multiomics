@@ -1160,13 +1160,10 @@ plot <-
   )
 
 plot
-ggsave(plot,
-       filename = "cluster_2/acylcarnitine_plot.pdf",
-       width = 9,
-       height = 7)
-
-
-
+# ggsave(plot,
+#        filename = "cluster_2/acylcarnitine_plot.pdf",
+#        width = 9,
+#        height = 7)
 
 
 
@@ -1233,10 +1230,10 @@ plot <-
   facet_wrap(facets = vars(cluster), scales = "free_y")
 
 plot
-ggsave(plot,
-       filename = "cytokine_plot.pdf",
-       width = 12,
-       height = 7)
+# ggsave(plot,
+#        filename = "cytokine_plot.pdf",
+#        width = 12,
+#        height = 7)
 
 
 ###lipid class chanfges
@@ -1388,7 +1385,7 @@ plot <-
     legend.background = element_rect(fill = "transparent", color = NA)
   )
 
-
+plot
 # ggsave(plot, filename = "lipid_change.pdf", width = 9, height = 5)
 
 
@@ -1480,7 +1477,6 @@ rownames(temp_data2) <-
 
 library(plyr)
 
-
 ##mean value
 temp_data2_mean <-
   temp_data2 %>%
@@ -1570,7 +1566,6 @@ rownames(temp_data3) <-
 
 library(plyr)
 
-
 ##mean value
 temp_data3_mean <-
   temp_data3 %>%
@@ -1634,9 +1629,6 @@ library(patchwork)
 plot2 + plot1 + patchwork::plot_layout(ncol = 1, heights = c(1, 2))
 plot1 + plot3 + patchwork::plot_layout(widths = c(2, 1))
 
-
-
-
 plot <-
   {
     plot2 + plot2 + plot_layout(ncol = 2, widths = c(2, 1))
@@ -1649,7 +1641,7 @@ plot <-
 plot
 
 
-ggsave(plot,
-       filename = "lipid_carbon_number.pdf",
-       width = 8,
-       height = 7)
+# ggsave(plot,
+#        filename = "lipid_carbon_number.pdf",
+#        width = 8,
+#        height = 7)

@@ -21,10 +21,10 @@ load(
 load("data/ensure_shake_study/lipidomics_data_analysis/DEG/anova_marker_name")
 
 expression_data <-
-  expression_data[anova_marker_name,]
+  expression_data[anova_marker_name, ]
 
 variable_info <-
-  variable_info[match(anova_marker_name, variable_info$variable_id),] %>%
+  variable_info[match(anova_marker_name, variable_info$variable_id), ] %>%
   dplyr::mutate(mol_class = "lipid")
 
 masstools::setwd_project()
@@ -62,7 +62,7 @@ inslulin_sensitivity_variable_info <- variable_info %>%
 
 inslulin_sensitivity_expression_data <-
   expression_data[match(inslulin_sensitivity_variable_info$variable_id,
-                        rownames(expression_data)),] %>%
+                        rownames(expression_data)), ] %>%
   `+`(1) %>%
   log(2) %>%
   apply(1, function(x) {

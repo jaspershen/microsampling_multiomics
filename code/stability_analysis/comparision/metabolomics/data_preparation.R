@@ -77,11 +77,11 @@ variable_info <- extract_variable_info(metabolomics_data)
 # save(sample_info, file = "sample_info")
 # save(variable_info, file = "variable_info")
 
-metabolomics_data <- 
-metabolomics_data %>% 
-  activate_mass_dataset(what = "variable_info") %>% 
+metabolomics_data <-
+  metabolomics_data %>%
+  activate_mass_dataset(what = "variable_info") %>%
   dplyr::select(1:3)
 
 massdataset::export_mass_dataset(object = metabolomics_data,
-                                 file_type = "xlsx", 
+                                 file_type = "xlsx",
                                  path = ".")

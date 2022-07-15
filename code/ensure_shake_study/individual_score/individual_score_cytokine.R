@@ -8,30 +8,20 @@ rm(list = ls())
 source("code/tools.R")
 
 ###load data
-##metabolomics
+##cytokine
 load(
-  "data/ensure_shake_study/metabolomics_data_analysis/data_preparation/expression_data"
+  "data/ensure_shake_study/cytokine_data_analysis/data_preparation/expression_data"
 )
+load("data/ensure_shake_study/cytokine_data_analysis/data_preparation/sample_info")
 load(
-  "data/ensure_shake_study/metabolomics_data_analysis/data_preparation/sample_info"
-)
-load(
-  "data/ensure_shake_study/metabolomics_data_analysis/data_preparation/variable_info"
+  "data/ensure_shake_study/cytokine_data_analysis/data_preparation/variable_info"
 )
 
-load(
-  "data/ensure_shake_study/metabolomics_data_analysis/metabolites/DEG/anova_marker_name"
-)
-
-expression_data1 <-
-  expression_data[anova_marker_name,]
-
-variable_info1 <-
-  variable_info[match(anova_marker_name, variable_info$variable_id),] %>%
-  dplyr::mutate(mol_class = "metabolite")
+load("data/ensure_shake_study/cytokine_data_analysis/DEG/anova_marker_name")
 
 masstools::setwd_project()
-setwd("data/ensure_shake_study/3_omics/individual_scores/protein_score/")
+dir.create("data/ensure_shake_study/3_omics/individual_scores/cytokine_score/")
+setwd("data/ensure_shake_study/3_omics/individual_scores/cytokine_score/")
 
 variable_info$mol_name[!is.na(variable_info$Metabolite)] <-
   variable_info$Metabolite[!is.na(variable_info$Metabolite)]
@@ -57,25 +47,12 @@ expression_data <-
   expression_data %>%
   dplyr::select(sample_info$sample_id)
 
+###cytokine
+cytokine_variable_info <- variable_info %>%
+  dplyr::filter(subclass == "H41")
 
-####protein score
-protein_variable_info <- variable_info %>%
-  dplyr::filter(
-    mol_name %in% c(
-      "D-Alloisoleucine",
-      "L-Alanine",
-      "L-Isoleucine|L-Leucine",
-      "L-Methionine",
-      "L-Norvaline",
-      "L-Phenylalanine",
-      "L-Tryptophan",
-      "L-Tyrosine",
-      "Phenylalanine"
-    )
-  )
-
-protein_expression_data <-
-  expression_data[match(protein_variable_info$variable_id,
+cytokine_expression_data <-
+  expression_data[match(cytokine_variable_info$variable_id,
                         rownames(expression_data)),] %>%
   `+`(1) %>%
   log(2) %>%
@@ -89,8 +66,10 @@ protein_expression_data <-
 
 library(plyr)
 
-plot =
-  protein_expression_data %>%
+plot <-
+  cytokine_expression_data[names(tail(sort(apply(
+    cytokine_expression_data, 1, mean
+  )), 6)), ] %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
                       names_to = "sample_id",
@@ -132,13 +111,12 @@ plot =
     legend.background = element_rect(fill = "transparent", color = NA)
   )
 plot
-# ggsave(plot,
-#        filename = "protein_plot.pdf",
-#        width = 7,
-#        height = 7)
+# ggsave(plot, filename = "cytokine_plot.pdf", width = 14, height = 7)
 
-plot =
-  protein_expression_data %>%
+plot <-
+  cytokine_expression_data[names(tail(sort(apply(
+    cytokine_expression_data, 1, mean
+  )), 6)), ] %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
                       names_to = "sample_id",
@@ -157,7 +135,9 @@ plot =
   do.call(rbind, .) %>%
   as.data.frame() %>%
   dplyr::mutate(subject_id = factor(subject_id,
-                                    levels = stringr::str_sort(unique(subject_id), numeric = TRUE))) %>%
+                                    levels = stringr::str_sort(
+                                      unique(sample_info$subject_id, numeric = TRUE)
+                                    ))) %>%
   ggplot(aes(TP, value, group = subject_id)) +
   geom_hline(yintercept = 0) +
   geom_point(aes(color = subject_id), show.legend = FALSE) +
@@ -189,15 +169,15 @@ plot =
   )  +
   facet_grid(vars(mol_name), vars(subject_id))
 plot
-# ggsave(plot, filename = "protein_plot2.pdf", width = 14, height = 7)
 
+# ggsave(plot, filename = "cytokine_plot2.pdf", width = 14, height = 7)
 
-# protein_score =
+# cytokine_score <-
 #   unique(sample_info$subject_id) %>%
 #   purrr::map(function(temp_subject_id) {
 #     cat(temp_subject_id, " ")
-#     temp_data =
-#       protein_expression_data %>%
+#     temp_data <-
+#       cytokine_expression_data %>%
 #       tibble::rownames_to_column(var = "variable_id") %>%
 #       tidyr::pivot_longer(
 #         cols = -variable_id,
@@ -206,7 +186,7 @@ plot
 #       ) %>%
 #       dplyr::left_join(variable_info, by = "variable_id") %>%
 #       dplyr::left_join(sample_info, by = "sample_id")  %>%
-#       dplyr::select(TP, mol_name, subject_id, sample_id, value) %>%
+#       dplyr::select(TP, mol_name, subject_id, sample_id, value, variable_id) %>%
 #       dplyr::filter(subject_id == temp_subject_id) %>%
 #       dplyr::arrange(TP)
 #
@@ -214,8 +194,11 @@ plot
 #       return(NULL)
 #     }
 #
-#     plot =
+#     plot <-
 #       temp_data %>%
+#       dplyr::filter(variable_id %in% names(tail(sort(
+#         apply(cytokine_expression_data, 1, mean)
+#       ), 6))) %>%
 #       plyr::dlply(.variables = .(mol_name)) %>%
 #       purrr::map(
 #         .f = function(x) {
@@ -264,32 +247,68 @@ plot
 #            width = 9,
 #            height = 7)
 #
-#     area =
+#     area <-
 #       temp_data %>%
 #       plyr::dlply(.variables = .(mol_name)) %>%
 #       purrr::map(function(x) {
 #         x <-
 #           x %>%
 #           dplyr::arrange(TP)
-#         trapz(x = x$TP,
+#         pracma::trapz(x = x$TP,
 #               y = x$value - x$value[x$TP == 0])
 #       }) %>%
 #       unlist()
 #     area
 #   })
 #
-# names(protein_score) = unique(sample_info$subject_id)
+# names(cytokine_score) = unique(sample_info$subject_id)
 #
-# protein_score =
-#   protein_score %>%
+# cytokine_score =
+#   cytokine_score %>%
 #   do.call(rbind, .) %>%
 #   as.data.frame()
 #
-# save(protein_score, file = "protein_score")
-load("protein_score")
+# save(cytokine_score, file = "cytokine_score")
+load("cytokine_score")
 
-plot =
-  protein_score %>%
+temp_data <-
+  seq_len(nrow(cytokine_score)) %>%
+  purrr::map(function(i) {
+    x <- cytokine_score[i, , drop = TRUE] %>%
+      unlist()
+    mean_value <- x %>% as.numeric() %>% mean()
+    data.frame(dist = rev(sort(abs(x - mean_value))),
+               rank = 1:length(x)) %>%
+      tibble::rownames_to_column(var = "name")
+  }) %>%
+  dplyr::bind_rows() %>%
+  dplyr::arrange(name)
+
+
+library(plyr)
+
+temp_data %>%
+  plyr::dlply(.variables = .(name)) %>%
+  lapply(function(x) {
+    sd(x$rank) / mean(x$rank)
+  }) %>%
+  unlist() %>%
+  data.frame(rsd = .) %>%
+  tibble::rownames_to_column(var = "name")
+
+temp_data %>%
+  ggplot(aes(name, rank)) +
+  geom_boxplot() +
+  geom_jitter() +
+  theme(axis.text.x = element_text(
+    angle = 45,
+    hjust = 1,
+    vjust = 1
+  ))
+
+####FGFB, IL7, MDC, RANTES
+plot <-
+  cytokine_score %>%
   tibble::rownames_to_column(var = "subject_id") %>%
   tidyr::pivot_longer(cols = -subject_id,
                       names_to = "mol_name",
@@ -301,8 +320,8 @@ plot =
   geom_point(aes(fill = mol_name), shape = 21,
              size = 4) +
   geom_line(aes(group = mol_name, color = mol_name)) +
-  ggsci::scale_color_uchicago() +
-  ggsci::scale_fill_uchicago() +
+  # ggsci::scale_color_uchicago() +
+  # ggsci::scale_fill_uchicago() +
   theme_bw() +
   labs(x = "", y = "Area under curve") +
   theme(
@@ -315,25 +334,21 @@ plot =
     legend.background = element_rect(fill = "transparent", color = NA)
   )
 plot
-# ggsave(plot, filename = "protein_score_plot.pdf", width = 10, height = 7)
+# ggsave(plot, filename = "cytokine_score_plot.pdf", width = 10, height = 7)
 
-protein_score %>%
+cytokine_score %>%
   apply(1, mean) %>%
   sort()
 
-
-
-
-
-protein_score1 =
-  protein_score %>%
+cytokine_score1 <-
+  cytokine_score %>%
   apply(2, function(x) {
-    1 - ((x - min(x)) / (max(x) - min(x)))
+    ((x - min(x)) / (max(x) - min(x)))
   }) %>%
   as.data.frame()
 
 temp_data <-
-  protein_score1 %>%
+  cytokine_score1 %>%
   tibble::rownames_to_column(var = "subject_id") %>%
   tidyr::pivot_longer(cols = -subject_id,
                       names_to = "class",
@@ -343,6 +358,7 @@ temp_data <-
   )))
 
 library(plyr)
+
 rsd <-
   temp_data %>%
   group_by(subject_id) %>%
@@ -382,7 +398,7 @@ plot <-
 
 plot
 
-ggsave(plot,
-       filename = "protein_score_boxplot.pdf",
-       width = 14,
-       height = 3)
+# ggsave(plot,
+#        filename = "cytokine_score_boxplot.pdf",
+#        width = 14,
+#        height = 3)

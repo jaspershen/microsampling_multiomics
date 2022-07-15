@@ -5,11 +5,11 @@ rm(list = ls())
 library(tidyverse)
 library(massdataset)
 
-load("data/stability/metabolomics/data_preparation/metabolomics_data")
+load("data/stability_analysis/metabolomics/data_preparation/metabolomics_data")
 
-dir.create("data/stability/metabolomics/correlation_variables",
+dir.create("data/stability_analysis/metabolomics/correlation_variables",
            recursive = TRUE)
-setwd("data/stability/metabolomics/correlation_variables")
+setwd("data/stability_analysis/metabolomics/correlation_variables")
 
 metabolomics_data <-
   metabolomics_data %>%
@@ -29,10 +29,10 @@ metabolomics_data <-
       filter(class == "P") %>% pull(sample_id)
   ) %>%
   activate_mass_dataset(what = "variable_info") %>%
-  rename(median_intensity_p = median_intensity) %>% 
-  dplyr::filter(median_intensity_total > 0) %>% 
-  dplyr::filter(!is.na(MSI.level)) %>% 
-  dplyr::filter(MSI.level > 0) 
+  rename(median_intensity_p = median_intensity) %>%
+  dplyr::filter(median_intensity_total > 0) %>%
+  dplyr::filter(!is.na(MSI.level)) %>%
+  dplyr::filter(MSI.level > 0)
 
 ratio <-
   extract_variable_info((metabolomics_data))$median_intensity_p / extract_variable_info((metabolomics_data))$median_intensity_m
@@ -56,8 +56,10 @@ cor.test(
   method = "spearman"
 )
 
-lm_reg <- 
-  lm(log(metabolomics_data@variable_info$median_intensity_m + 1, 10) ~ log(metabolomics_data@variable_info$median_intensity_p + 1, 10))
+lm_reg <-
+  lm(
+    log(metabolomics_data@variable_info$median_intensity_m + 1, 10) ~ log(metabolomics_data@variable_info$median_intensity_p + 1, 10)
+  )
 
 summary(lm_reg)
 
@@ -116,16 +118,16 @@ metabolomics_data %>%
 
 dim(m_data)
 
-temp_data <- 
+temp_data <-
   metabolomics_data %>%
   activate_mass_dataset(what = "variable_info") %>%
   filter(p < 0.05)
 
 plot <-
-  temp_data %>% 
+  temp_data %>%
   activate_mass_dataset(what = "variable_info") %>%
-  dplyr::filter(cor > 0) %>% 
-  ggplot(aes(log(median_intensity_m + 1, 10), 
+  dplyr::filter(cor > 0) %>%
+  ggplot(aes(log(median_intensity_m + 1, 10),
              log(median_intensity_p + 1, 10))) +
   geom_point(aes(fill = cor,
                  size = -log(p, 10)),
@@ -134,8 +136,8 @@ plot <-
   guides(color = guide_colorbar(title = "log10(intensity)")) +
   labs(x = "Microsampling", y = "Plasma") +
   theme(panel.grid.minor = element_blank()) +
-  scale_fill_gradient(low = alpha(ggsci::pal_aaas()(n=10)[2], 0.1),
-                      high = ggsci::pal_aaas()(n=10)[2]) +
+  scale_fill_gradient(low = alpha(ggsci::pal_aaas()(n = 10)[2], 0.1),
+                      high = ggsci::pal_aaas()(n = 10)[2]) +
   scale_size_continuous(range = c(0.5, 3)) +
   geom_smooth(method = "lm", se = TRUE)
 # ggforce:: facet_zoom(xlim = c(0,0.5), ylim = c(0, 1))
@@ -152,8 +154,8 @@ cor.test(
 
 median(temp_data@variable_info$cor)
 mean(temp_data@variable_info$cor)
-# 
-# 
+#
+#
 # cor_data_sample <-
 #   purrr::map(1:ncol(m_data), function(idx) {
 #     cat(idx, " ")
@@ -166,17 +168,17 @@ mean(temp_data@variable_info$cor)
 #   }) %>%
 #   dplyr::bind_rows() %>%
 #   as.data.frame()
-# 
+#
 # m_data
-# 
+#
 # temp_data <-
 #   data.frame(median_intensity_m = apply(log(m_data + 1, 10), 2, median),
 #              median_intensity_p = apply(log(p_data + 1, 10), 2, median),
 #              cor_data_sample)
-# 
+#
 # plot <-
-#   temp_data %>% 
-#   ggplot(aes(log(median_intensity_m + 1, 10), 
+#   temp_data %>%
+#   ggplot(aes(log(median_intensity_m + 1, 10),
 #              log(median_intensity_p + 1, 10))) +
 #   geom_point(aes(fill = cor,
 #                  size = -log(p, 10)),
@@ -188,50 +190,50 @@ mean(temp_data@variable_info$cor)
 #                       high = ggsci::pal_aaas()(n=10)[2]) +
 #   scale_size_continuous(range = c(0.5, 3)) +
 #   geom_smooth(method = "lm", se = TRUE)
-# 
-# 
+#
+#
 # plot
-# 
+#
 # median(temp_data$cor)
-# 
+#
 # cor.test(temp_data$median_intensity_m, temp_data$median_intensity_p, method = "spearman")
-# 
-# 
+#
+#
 # cor.test(-log(metabolomics_data$M1 + 1, 10), -log(metabolomics_data$P1 + 1, 10))
-# 
-# temp_data <- 
-#   metabolomics_data %>% 
-#   `+`(1) %>% 
-#   log(10) %>% 
-#   pivot_longer() %>% 
+#
+# temp_data <-
+#   metabolomics_data %>%
+#   `+`(1) %>%
+#   log(10) %>%
+#   pivot_longer() %>%
 #   dplyr::left_join(extract_sample_info(metabolomics_data)[,c("sample_id", "subject_id", "class")],
-#                    by = "sample_id") %>% 
-#   dplyr::select(-sample_id) %>% 
+#                    by = "sample_id") %>%
+#   dplyr::select(-sample_id) %>%
 #   pivot_wider(names_from = class, values_from = value)
-# 
-# 
+#
+#
 # median(cor_data_sample$cor)
-# 
-# all_cor_sample <- 
-# metabolomics_data %>% 
-#   `+`(1) %>% 
-#   log(10) %>% 
-# cor_mass_dataset(margin = "sample", 
-#                  method = "spearman", 
+#
+# all_cor_sample <-
+# metabolomics_data %>%
+#   `+`(1) %>%
+#   log(10) %>%
+# cor_mass_dataset(margin = "sample",
+#                  method = "spearman",
 #                  data_type = "longer",
 #                  p_adjust_method = 'BH')
-# 
-# all_cor_sample %>% 
-#   dplyr::filter(from == "P1" | to == "P1") %>% 
+#
+# all_cor_sample %>%
+#   dplyr::filter(from == "P1" | to == "P1") %>%
 #   dplyr::filter(stringr::str_extract(from, "M|P") != stringr::str_extract(to, "M|P"))
-# 
-# 
+#
+#
 # temp_data %>%
 #   dplyr::mutate(subject_id = factor(subject_id,
 #                                    levels = stringr::str_sort(unique(
 #                                      temp_data$subject_id
 #                                    ),
-#                                    numeric = TRUE))) %>% 
+#                                    numeric = TRUE))) %>%
 # ggplot(aes(M, P)) +
 #   geom_point(alpha = 0.5) +
 #   geom_smooth(method = "lm") +
@@ -250,7 +252,7 @@ mean(temp_data@variable_info$cor)
 #   log(10) %>%
 #   scale() %>%
 #   run_pca()
-# 
+#
 # pca_score_plot(
 #   object = metabolomics_data,
 #   pca_object = pca_object,
@@ -258,3 +260,54 @@ mean(temp_data@variable_info$cor)
 #   frame = FALSE
 # ) +
 #   ggrepel::geom_text_repel(aes(label = sample_id))
+
+
+sum(temp_data@variable_info$cor < 0.5)
+sum(temp_data@variable_info$cor > 0.5)
+
+library(metpath)
+
+query_id <- 
+  query_id[!is.na(query_id)]
+
+query_id <- query_id[query_id != ""]
+   
+query_id <- 
+  query_id %>% 
+  stringr::str_split(pattern = "\\|") %>% 
+  unlist() %>% 
+  unique()
+
+
+data("kegg_hsa_pathway", package = "metpath")
+kegg_hsa_pathway
+pathway_class = 
+  metpath::pathway_class(kegg_hsa_pathway)
+remain_idx =
+  pathway_class %>%
+  unlist() %>%
+  stringr::str_detect("Disease") %>%
+  `!`() %>%
+  which()
+
+remain_idx
+
+pathway_database =
+  kegg_hsa_pathway[remain_idx]
+
+result = 
+  enrich_kegg(query_id = query_id, 
+              query_type = "compound", 
+              id_type = "KEGG",
+              pathway_database = pathway_database, 
+              p_cutoff = 0.05, 
+              p_adjust_method = "BH", 
+              threads = 3)
+
+result@result$p_value_adjust
+
+plot <- 
+enrich_scatter_plot(object = result)
+
+
+ggsave(plot, file = "pathway_enrichment.pdf", width = 7, height = 7)

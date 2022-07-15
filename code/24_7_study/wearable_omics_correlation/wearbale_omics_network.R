@@ -462,7 +462,7 @@ plot
 ####pie to show for each wearable
 library(ggpie)
 
-temp_data = 
+temp_data <-
   edge_data %>% 
   dplyr::filter(from == 'CGM') %>% 
   dplyr::group_by(class) %>% 

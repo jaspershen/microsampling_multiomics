@@ -9,9 +9,13 @@ source("code/tools.R")
 
 ###load data
 ##cytokine
-load("data/ensure_shake_study/cytokine_data_analysis/data_preparation/expression_data")
+load(
+  "data/ensure_shake_study/cytokine_data_analysis/data_preparation/expression_data"
+)
 load("data/ensure_shake_study/cytokine_data_analysis/data_preparation/sample_info")
-load("data/ensure_shake_study/cytokine_data_analysis/data_preparation/variable_info")
+load(
+  "data/ensure_shake_study/cytokine_data_analysis/data_preparation/variable_info"
+)
 
 load("data/ensure_shake_study/cytokine_data_analysis/DEG/anova_marker_name")
 
@@ -48,7 +52,7 @@ inslulin_secreation_variable_info <- variable_info %>%
 
 inslulin_secreation_expression_data <-
   expression_data[match(inslulin_secreation_variable_info$variable_id,
-                        rownames(expression_data)),] %>%
+                        rownames(expression_data)), ] %>%
   `+`(1) %>%
   log(2) %>%
   apply(1, function(x) {
@@ -106,7 +110,7 @@ plot =
 plot
 # ggsave(plot, filename = "inslulin_secreation_plot.pdf", width = 14, height = 7)
 
-plot =
+plot <-
   inslulin_secreation_expression_data %>%
   tibble::rownames_to_column(var = "variable_id") %>%
   tidyr::pivot_longer(cols = -variable_id,
@@ -293,12 +297,10 @@ inslulin_secreation_score %>%
   apply(1, mean) %>%
   sort()
 
-
-
 inslulin_secreation_score1 =
   inslulin_secreation_score %>%
   apply(2, function(x) {
-    1 - ((x - min(x)) / (max(x) - min(x)))
+    ((x - min(x)) / (max(x) - min(x)))
   }) %>%
   as.data.frame()
 
@@ -352,7 +354,7 @@ plot <-
 
 plot
 
-ggsave(plot,
-       filename = "inslulin_secreation_score_boxplot.pdf",
-       width = 14,
-       height = 3)
+# ggsave(plot,
+#        filename = "inslulin_secreation_score_boxplot.pdf",
+#        width = 14,
+#        height = 3)

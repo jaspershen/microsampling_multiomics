@@ -3,7 +3,7 @@ library(tidyverse)
 masstools::setwd_project()
 rm(list = ls())
 source("code/tools.R")
-source("code/modified_dtw.R")
+# source("code/modified_dtw.R")
 source("code/lagged_correlation.R")
 
 ####we need the lipidomics module information

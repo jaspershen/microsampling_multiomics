@@ -24,10 +24,10 @@ load(
 )
 
 expression_data1 <-
-  expression_data[anova_marker_name, ]
+  expression_data[anova_marker_name,]
 
 variable_info1 <-
-  variable_info[match(anova_marker_name, variable_info$variable_id), ]
+  variable_info[match(anova_marker_name, variable_info$variable_id),]
 
 ##lipidomics
 load(
@@ -43,10 +43,10 @@ load(
 load("data/ensure_shake_study/lipidomics_data_analysis/DEG/anova_marker_name")
 
 expression_data2 <-
-  expression_data[anova_marker_name, ]
+  expression_data[anova_marker_name,]
 
 variable_info2 <-
-  variable_info[match(anova_marker_name, variable_info$variable_id), ]
+  variable_info[match(anova_marker_name, variable_info$variable_id),]
 
 ##cytokine
 load(
@@ -60,10 +60,10 @@ load(
 load("data/ensure_shake_study/cytokine_data_analysis/DEG/anova_marker_name")
 
 expression_data3 <-
-  expression_data[anova_marker_name, ]
+  expression_data[anova_marker_name,]
 
 variable_info3 <-
-  variable_info[match(anova_marker_name, variable_info$variable_id), ]
+  variable_info[match(anova_marker_name, variable_info$variable_id),]
 
 masstools::setwd_project()
 setwd("data/ensure_shake_study/3_omics/individual_variation")
@@ -93,7 +93,7 @@ variable_info$mol_name[!is.na(variable_info$Metabolite)] <-
   variable_info$Metabolite[!is.na(variable_info$Metabolite)]
 
 sample_info <-
-  sample_info[match(colnames(expression_data), sample_info$sample_id),]
+  sample_info[match(colnames(expression_data), sample_info$sample_id), ]
 
 dim(expression_data)
 dim(sample_info)
@@ -118,11 +118,11 @@ expression_data <-
 
 ###calculate distance for each person
 ##for metabolome, we use the euclidean distance
-plot(density(as.numeric(expression_data[1,])))
+plot(density(as.numeric(expression_data[1, ])))
 
 ###log normation data
 expression_data1 <- log(expression_data + 1, 2)
-plot(density(as.numeric(expression_data1[1,])))
+plot(density(as.numeric(expression_data1[1, ])))
 
 # distance_individual <-
 #   purrr::map(
@@ -213,11 +213,11 @@ sil_plot
 name2 <-
   rownames(distance_individual_old)[result$originalResult[[idx]]$consensusTree$order]
 
-distance_individual_old2 <- distance_individual_old[name2,]
+distance_individual_old2 <- distance_individual_old[name2, ]
 cluster <- result$originalResult[[idx]]$consensusClass
 
 temp_sample_info <-
-  subject_info[match(rownames(distance_individual_old2), subject_info$subject_id),]
+  subject_info[match(rownames(distance_individual_old2), subject_info$subject_id), ]
 
 cbind(temp_sample_info$subject_id,
       rownames(distance_individual_old2))
@@ -351,11 +351,12 @@ ha1 = rowAnnotation(
 #   )
 # )
 
-ha2 = rowAnnotation(foo = anno_block(labels = c("1", "2"),
-                                     gp = gpar(
-                                       fill = c(ggsci::pal_d3()(10)[1],
-                                                ggsci::pal_d3()(10)[2])
-                                     )))
+ha2 <-
+  rowAnnotation(foo = anno_block(labels = c("1", "2"),
+                                 gp = gpar(
+                                   fill = c(ggsci::pal_d3()(10)[1],
+                                            ggsci::pal_d3()(10)[2])
+                                 )))
 
 temp_data <- distance_individual_old2
 
@@ -393,6 +394,41 @@ cluster_group <-
   cluster %>%
   data.frame(cluster = .) %>%
   tibble::rownames_to_column(var = "subject_id")
+
+library(ggsignif)
+
+plot <- 
+cluster_group %>%
+  dplyr::left_join(temp_sample_info, by = "subject_id") %>%
+  dplyr::select(subject_id, cluster, sspg) %>%
+  dplyr::filter(!is.na(sspg)) %>%
+  dplyr::mutate(cluster = as.character(cluster)) %>%
+  ggplot(aes(cluster, sspg)) +
+  geom_boxplot(aes(color = cluster),
+               show.legend = FALSE) +
+  geom_jitter(shape = 21, size = 5, 
+              aes(fill = cluster), 
+              show.legend = FALSE) +
+  geom_hline(yintercept = 150, color = "red") +
+  theme_bw() +
+  labs(x = "", y = "Steady state plasma glucose (SSPG)") +
+  scale_fill_manual(values = c(
+    "1" = ggsci::pal_d3()(10)[1],
+    "2" = ggsci::pal_d3()(10)[2]
+  )) +
+  scale_color_manual(values = c(
+    "1" = ggsci::pal_d3()(10)[1],
+    "2" = ggsci::pal_d3()(10)[2]
+  )) +
+  geom_signif(
+    comparisons = list(c("1", "2")),
+    map_signif_level = FALSE, 
+    textsize = 4
+  )
+
+plot
+
+# ggsave(plot, filename = "cluster1_2_sspg.pdf", width = 7, height = 7)
 
 distance_individual <-
   distance_individual %>%
@@ -785,7 +821,7 @@ purrr::walk(
     cat(x, " ")
     name <- variable_info$mol_name[variable_info$variable_id == x]
     plot <-
-      data.frame(value = as.numeric(temp_data[x, ]),
+      data.frame(value = as.numeric(temp_data[x,]),
                  sample_id = colnames(temp_data)) %>%
       dplyr::left_join(temp_sample_info, by = "sample_id") %>%
       dplyr::mutate(Time = factor(as.character(Time),

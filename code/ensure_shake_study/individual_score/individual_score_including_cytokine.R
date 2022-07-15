@@ -66,7 +66,7 @@ variable_info2 <-
   variable_info2 %>%
   dplyr::left_join(lipid_info, by = c("mol_name" = "Lipid_Name"))
 
-##cytokine and hormone
+##hormone
 load(
   "data/ensure_shake_study/cytokine_data_analysis/data_preparation/expression_data"
 )
@@ -77,12 +77,13 @@ load(
 
 load("data/ensure_shake_study/cytokine_data_analysis/DEG/anova_marker_name")
 
-expression_data3 <-
-  expression_data[anova_marker_name, ]
-
 variable_info3 <-
   variable_info[match(anova_marker_name, variable_info$variable_id), ] %>%
-  dplyr::mutate(mol_class = "cytokine")
+  dplyr::filter(subclass == "Metabolic_panel") %>%
+  dplyr::mutate(mol_class = "hormone")
+
+expression_data3 <-
+  expression_data[variable_info3$variable_id, ]
 
 ##cytokine
 load(
@@ -107,16 +108,19 @@ masstools::setwd_project()
 setwd("data/ensure_shake_study/3_omics/individual_scores")
 
 intersect_name <-
-  Reduce(f = intersect, x = list(
-    colnames(expression_data1),
-    colnames(expression_data2),
-    colnames(expression_data3)
-  ))
+  Reduce(f = intersect,
+         x = list(
+           colnames(expression_data1),
+           colnames(expression_data2),
+           colnames(expression_data3),
+           colnames(expression_data4)
+         ))
 
 expression_data <-
   rbind(expression_data1[, intersect_name],
         expression_data2[, intersect_name],
-        expression_data3[, intersect_name])
+        expression_data3[, intersect_name],
+        expression_data4[, intersect_name])
 
 variable_info <-
   variable_info1 %>%
@@ -125,7 +129,10 @@ variable_info <-
                                   colnames(variable_info2))) %>%
   dplyr::full_join(variable_info3,
                    by = intersect(colnames(.),
-                                  colnames(variable_info3)))
+                                  colnames(variable_info3))) %>%
+  dplyr::full_join(variable_info4,
+                   by = intersect(colnames(.),
+                                  colnames(variable_info4)))
 
 variable_info$mol_name[!is.na(variable_info$Metabolite)] <-
   variable_info$Metabolite[!is.na(variable_info$Metabolite)]
@@ -222,7 +229,7 @@ inslulin_sensitivity_score1 =
 cytokine_score1 =
   cytokine_score[intersect_name,] %>%
   apply(2, function(x) {
-    1 - ((x - min(x)) / (max(x) - min(x)))
+    ((x - min(x)) / (max(x) - min(x)))
   }) %>%
   as.data.frame()
 
@@ -253,6 +260,7 @@ all_feature_score =
       tidyr::pivot_longer(-subject_id, names_to = "variable_id") %>%
       dplyr::mutate(class = "cytokine")
   )
+
 
 #####how to combine area for each individual score
 carb_variable_info <- variable_info %>%
@@ -634,15 +642,13 @@ inslulin_sensitivity_expression_data <-
 # save(inslulin_sensitivity_cor_matrix, file = "inslulin_sensitivity_score/inslulin_sensitivity_cor_matrix")
 load("inslulin_sensitivity_score/inslulin_sensitivity_cor_matrix")
 
-
-
 ###cytokine
 #####how to combine area for each individual score
 cytokine_variable_info <- variable_info %>%
   dplyr::filter(subclass == "H41")
 
-inslulin_sensitivity_expression_data <-
-  expression_data[match(inslulin_sensitivity_variable_info$variable_id,
+cytokine_expression_data <-
+  expression_data[match(cytokine_variable_info$variable_id,
                         rownames(expression_data)), ] %>%
   `+`(1) %>%
   log(2) %>%
@@ -652,9 +658,10 @@ inslulin_sensitivity_expression_data <-
   t() %>%
   as.data.frame()
 
-# inslulin_sensitivity_cor_matrix =
+# cytokine_cor_matrix <-
 #   unique(sample_info$subject_id) %>%
 #   purrr::map(function(x) {
+#     cat(x, " ")
 #     temp_sample_info =
 #       sample_info %>%
 #       dplyr::filter(subject_id == x)
@@ -665,9 +672,9 @@ inslulin_sensitivity_expression_data <-
 #
 #     library(ComplexHeatmap)
 #     temp_data =
-#       inslulin_sensitivity_expression_data[, temp_sample_info$sample_id]
+#       cytokine_expression_data[, temp_sample_info$sample_id]
 #
-#     rownames(temp_data) = inslulin_sensitivity_variable_info$mol_name
+#     rownames(temp_data) = cytokine_variable_info$mol_name
 #
 #     library(corrplot)
 #     library(circlize)
@@ -677,6 +684,8 @@ inslulin_sensitivity_expression_data <-
 #       temp_data %>%
 #       t() %>%
 #       cor()
+#
+#     temp_data[is.na(temp_data)] <- 0
 #
 #     plot =
 #       temp_data %>%
@@ -699,7 +708,7 @@ inslulin_sensitivity_expression_data <-
 #
 #     ggsave(
 #       plot,
-#       filename = file.path("inslulin_sensitivity_score/correltion_plot/",
+#       filename = file.path("cytokine_score/correltion_plot/",
 #                            paste(x, ".pdf", sep = "")),
 #       width = 8,
 #       height = 7
@@ -707,10 +716,9 @@ inslulin_sensitivity_expression_data <-
 #     return(as.data.frame(temp_data))
 #   })
 #
-# names(inslulin_sensitivity_cor_matrix) = unique(sample_info$subject_id)
-# save(inslulin_sensitivity_cor_matrix, file = "inslulin_sensitivity_score/inslulin_sensitivity_cor_matrix")
-load("inslulin_sensitivity_score/inslulin_sensitivity_cor_matrix")
-
+# names(cytokine_cor_matrix) = unique(sample_info$subject_id)
+# save(cytokine_cor_matrix, file = "cytokine_score/cytokine_cor_matrix")
+load("cytokine_score/cytokine_cor_matrix")
 
 temp_data =
   rbind(
@@ -738,15 +746,22 @@ temp_data =
       purrr::map(function(x) {
         mean(x[upper.tri(x)])
       }) %>%
+      unlist(),
+    cytokine_cor_matrix %>%
+      purrr::map(function(x) {
+        mean(x[upper.tri(x)])
+      }) %>%
       unlist()
   ) %>%
   as.data.frame()
 
-rownames(temp_data)  = c("carb",
-                         "fat",
-                         "protein",
-                         "inslulin_secreation",
-                         "inslulin_sensitivity")
+rownames(temp_data)  <-
+  c("carb",
+    "fat",
+    "protein",
+    "inslulin_secreation",
+    "inslulin_sensitivity",
+    "cytokine")
 
 ###combine score together
 carb_score2 =
@@ -769,13 +784,18 @@ inslulin_sensitivity_score2 =
   inslulin_sensitivity_score1 %>%
   apply(1, median)
 
-all_score =
+cytokine_score2 <-
+  cytokine_score1 %>%
+  apply(1, median)
+
+all_score <-
   rbind(
     carb_score2,
     fat_score2,
     protein_score2,
     inslulin_secreation_score2,
-    inslulin_sensitivity_score2
+    inslulin_sensitivity_score2,
+    cytokine_score2
   ) %>%
   as.data.frame() %>%
   apply(1, function(x) {
@@ -789,7 +809,8 @@ rownames(all_score) =
     "fat",
     "protein",
     "inslulin_secreation",
-    "inslulin_sensitivity")
+    "inslulin_sensitivity",
+    "cytokine")
 
 # save(all_score, file = "all_score")
 load("all_score")
@@ -811,16 +832,20 @@ text_df <-
       "fat",
       "protein",
       "inslulin_secreation",
-      "inslulin_sensitivity"
+      "inslulin_sensitivity",
+      "cytokine"
     )
   ))
 
 library(ComplexHeatmap)
+library(circlize)
+col_fun = circlize::colorRamp2(breaks = c(-1, 0, 1),
+                               colors = c("blue", "white", "red"))
 
 plot <-
   Heatmap(
-    all_score,
-    rect_gp = gpar(col = "white"),
+    t(all_score),
+    rect_gp = gpar(col = "black"),
     clustering_distance_columns = "euclidean",
     clustering_method_columns = "complete",
     clustering_distance_rows = "euclidean",
@@ -828,16 +853,18 @@ plot <-
     col = col_fun,
     name = "Individual score",
     border = TRUE,
+    row_split = 5,
     column_names_rot = 45
   )
 
 plot
 
 subject_order <-
-  colnames(all_score)[column_order(plot)]
+  colnames(all_score)[unlist(row_order(plot))]
 
 plot <- ggplotify::as.ggplot(plot)
-# ggsave(plot, filename = "all_score_hcluster.pdf", width = 14, height = 10)
+plot
+# ggsave(plot, filename = "all_score_hcluster.pdf", width = 7, height = 10)
 
 plot <-
   all_feature_score %>%
@@ -850,17 +877,18 @@ plot <-
       "fat",
       "protein",
       "inslulin_secreation",
-      "inslulin_sensitivity"
+      "inslulin_sensitivity",
+      "cytokine"
     )
   )) %>%
   ggplot(aes(subject_id, value)) +
   geom_boxplot(aes(color = subject_id), show.legend = FALSE) +
-  geom_jitter(
-    shape = 21,
-    aes(fill = subject_id),
-    alpha = 0.6,
-    show.legend = FALSE
-  ) +
+  # geom_jitter(
+  #   shape = 21,
+  #   aes(fill = subject_id),
+  #   alpha = 0.6,
+  #   show.legend = FALSE
+  # ) +
   geom_line(aes(subject_id, value, group = class),
             data = text_df,
             show.legend = FALSE) +
@@ -916,14 +944,16 @@ plot =
       "fat",
       "protein",
       "inslulin_secreation",
-      "inslulin_sensitivity"
+      "inslulin_sensitivity",
+      "cytokine"
     ),
     columnLabels = c(
       "Carbohydrate",
       "Fat",
       "Protein",
       "Insulin secreation",
-      "Insulin sensitivity"
+      "Insulin sensitivity",
+      "Cytokine"
     ),
     lower = list(continuous = wrap(
       my_plot,
@@ -931,9 +961,9 @@ plot =
       point_fill = subject_col
     )),
     upper = list(continuous = wrap("cor", method = "spearman"))
-  ) +
-  theme_bw() +
-  theme(panel.grid = element_blank())
+  )
+# theme_bw() +
+# theme(panel.grid = element_blank())
 
 plot
 # ggsave(plot, filename = "score_cor_matirx.pdf", width = 9, height = 7)
@@ -1055,43 +1085,42 @@ ha1 = HeatmapAnnotation(
 
 ha2 =
   HeatmapAnnotation(
-    bmi = anno_lines(
+    bmi = anno_barplot(
       bmi,
-      add_points = TRUE,
+      # add_points = TRUE,
       ylim = c(min(bmi, na.rm = TRUE), max(bmi, na.rm = TRUE)),
-      height = unit(3, "cm"),
+      height = unit(2, "cm"),
       size = unit(5, "mm"),
       pch = 21,
       extend = 0.1,
-      pt_gp = gpar(fill = 3, fill = ggsci::pal_aaas()(n = 10)[4])
+      gp = gpar(fill = 3, fill = ggsci::pal_aaas()(n = 10)[4])
     ),
-    age = anno_lines(
+    age = anno_barplot(
       age,
       add_points = TRUE,
       ylim = c(min(age, na.rm = TRUE), max(age, na.rm = TRUE)),
-      height = unit(3, "cm"),
+      height = unit(2, "cm"),
       pch = 21,
       size = unit(5, "mm"),
       extend = 0.1,
-      pt_gp = gpar(cex = 3, fill = ggsci::pal_aaas()(n = 10)[5])
+      gp = gpar(cex = 3, fill = ggsci::pal_aaas()(n = 10)[5])
     ),
-    sspg = anno_lines(
+    sspg = anno_barplot(
       sspg,
       add_points = TRUE,
       ylim = c(min(sspg, na.rm = TRUE), max(sspg, na.rm = TRUE)),
-      height = unit(3, "cm"),
+      height = unit(2, "cm"),
       pch = 21,
       size = unit(5, "mm"),
       extend = 0.1,
-      pt_gp = gpar(cex = 3,
-                   fill = ggsci::pal_aaas()(n = 10)[6])
+      gp = gpar(cex = 3,
+                fill = ggsci::pal_aaas()(n = 10)[6])
     )
   )
 
 ###annotation
 ###top annotation
 library(circlize)
-
 
 plot <-
   Heatmap(
@@ -1106,14 +1135,19 @@ plot <-
     border = TRUE,
     top_annotation = ha1,
     bottom_annotation = ha2,
-    column_names_rot = 45
+    column_names_rot = 45,
+    column_split = 5
   )
-
+plot
 library(dendextend)
 
-name1 = colnames(plot@matrix)[column_order(object = plot)]
-dend1 = ComplexHeatmap::column_dend(object = plot)
-dend1 = dendextend::as.ggdend(dend1)
+name1 <-
+  colnames(plot@matrix)[unlist(column_order(object = plot))]
+dend1 <-
+  ComplexHeatmap::column_dend(object = plot)
+
+dend1 <-
+  dendextend::as.ggdend(dend1)
 
 plot = ggplotify::as.ggplot(plot)
 
@@ -1121,13 +1155,12 @@ plot
 
 # ggsave(plot, filename = "individual_score_heatmap.pdf", width = 10, height = 7)
 
-
 ###all feature score
-temp_data =
+temp_data <-
   all_feature_score %>%
   tidyr::pivot_wider(names_from = subject_id, values_from = value)
 
-plot =
+plot <-
   Heatmap(
     temp_data[, -c(1, 2)],
     column_names_rot = 45,
@@ -1259,7 +1292,6 @@ plot =
     axis.title = element_text(size = 12)
   )
 plot
-# ggsave(plot, filename = "individual_score_plot.pdf", width = 10, height = 7)
 
 
 ####radar to show the plot for each person
@@ -1267,7 +1299,7 @@ plot
 library(ggiraphExtra)
 
 dir.create("radar_plot")
-# for(idx in 1:ncol(all_score)){
+# for(idx in 1:ncol(all_score)) {
 #   cat(idx, " ")
 #   plot =
 #     all_score[, idx, drop = FALSE] %>%
@@ -1290,10 +1322,15 @@ dir.create("radar_plot")
 #     scale_color_manual(values = subject_col) +
 #     theme(panel.grid.minor = element_blank())
 #
-#   ggsave(plot, filename = file.path("radar_plot", paste(colnames(all_score)[idx], "_radar.pdf", sep = "")),
-#          width = 8, height = 7)
+#   ggsave(
+#     plot,
+#     filename = file.path("radar_plot", paste(
+#       colnames(all_score)[idx], "_radar.pdf", sep = ""
+#     )),
+#     width = 8,
+#     height = 7
+#   )
 # }
-
 
 #####score vs characteristics
 colnames(all_score)
@@ -1326,26 +1363,50 @@ temp_data =
   dplyr::filter(!is.na(info_class)) %>%
   dplyr::mutate(subject_id = factor(subject_id, levels = stringr::str_sort(unique(subject_id), numeric = TRUE)))
 
-plot =
+temp_data <-
   temp_data %>%
-  # dplyr::filter(subject_id != "S1") %>%
+  dplyr::filter(subject_id != "S1")
+
+plot <-
+  temp_data %>%
+  dplyr::filter(subject_id != "S1") %>%
+  dplyr::mutate(score_class = factor(
+    score_class,
+    levels = c(
+      "carb",
+      "fat",
+      "protein",
+      "inslulin_secreation",
+      "inslulin_sensitivity",
+      "cytokine"
+    )
+  )) %>%
   ggplot(aes(score, value)) +
-  geom_point(shape = 21, aes(fill = subject_id), size = 4) +
+  geom_point(
+    shape = 21,
+    aes(fill = subject_id),
+    size = 4,
+    show.legend = FALSE
+  ) +
   geom_smooth(se = FALSE, method = "lm", color = "black") +
   scale_fill_manual(values = subject_col) +
   theme_bw() +
   labs(x = "Individual score", y = "Characteristics score") +
-  facet_wrap(vars(info_class, score_class),
-             scales = "free_y",
-             nrow = 3) +
+  facet_grid(
+    rows = vars(info_class),
+    cols = vars(score_class),
+    scales = "free_y"
+  ) +
   theme(
     panel.grid = element_blank(),
     axis.text = element_text(size = 10),
     axis.title = element_text(size = 12),
     strip.text = element_text(size = 12)
   )
+
 plot
-# ggsave(plot, filename = "score_vs_value.pdf", width = 10, height = 7)
+
+# ggsave(plot, filename = "score_vs_value.pdf", width = 14, height = 7)
 
 purrr::map(
   .x = c(unique(temp_data$score_class)),
@@ -1534,11 +1595,85 @@ plot
 
 # ggsave(plot, filename = "pca_plot1.pdf", width = 7, height = 7)
 
-###select 6 subjects
+###select 5 subjects for each class
+###cluster 1 S30, S8, S10, S17
+###cluster 2 S2, S5, S15, S9
+###cluster 3 S1, S12, S25, S35, S38, S28, S21, S22
+###cluster 4 S24, S27, S23, S29
+###cluster 5 S13, S34, S36
+
+##for each subject, we need one example
+##cluster 1
+mean_value <- 
+all_score[, c("S30", "S8", "S10", "S17")] %>%
+  apply(1, mean)
+distance <- 
+all_score[, c("S30", "S8", "S10", "S17")] %>% 
+  purrr::map(function(x){
+    sqrt(sum((x - mean_value)^2))
+  }) %>% 
+  unlist
+cluster1_example <- 
+names(which.min(distance))
+
+##cluster 2
+mean_value <- 
+  all_score[, c("S2", "S5", "S15", "S9")] %>%
+  apply(1, mean)
+distance <- 
+  all_score[, c("S2", "S5", "S15", "S9")] %>% 
+  purrr::map(function(x){
+    sqrt(sum((x - mean_value)^2))
+  }) %>% 
+  unlist
+cluster2_example <- 
+  names(which.min(distance))
+
+##cluster 3
+mean_value <- 
+  all_score[, c("S1", "S12", "S25", "S35", "S38", "S28", "S21", "S22")] %>%
+  apply(1, mean)
+distance <- 
+  all_score[, c("S1", "S12", "S25", "S35", "S38", "S28", "S21", "S22")] %>% 
+  purrr::map(function(x){
+    sqrt(sum((x - mean_value)^2))
+  }) %>% 
+  unlist
+cluster3_example <- 
+  names(which.min(distance))
+
+##cluster 4
+mean_value <- 
+  all_score[, c("S24", "S27", "S23", "S29")] %>%
+  apply(1, mean)
+distance <- 
+  all_score[, c("S24", "S27", "S23", "S29")] %>% 
+  purrr::map(function(x){
+    sqrt(sum((x - mean_value)^2))
+  }) %>% 
+  unlist
+cluster4_example <- 
+  names(which.min(distance))
+
+##cluster 5
+mean_value <- 
+  all_score[, c("S13", "S34", "S36")] %>%
+  apply(1, mean)
+distance <- 
+  all_score[, c("S13", "S34", "S36")] %>% 
+  purrr::map(function(x){
+    sqrt(sum((x - mean_value)^2))
+  }) %>% 
+  unlist
+cluster5_example <- 
+  names(which.min(distance))
 
 head(x)
-
-idx = c("S13", "S24", "S23", "S17", "S34", "S21")
+idx = c(cluster1_example,
+        cluster2_example,
+        cluster3_example,
+        cluster4_example,
+        cluster5_example)
 
 ###all feature score
 temp_data <-
@@ -1574,7 +1709,7 @@ library(ggforce)
 # child weight
 library(wesanderson)
 
-plot =
+plot <-
   ggplot(x, aes(x = PC1, y = PC2)) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_vline(xintercept = 0, linetype = 2) +
@@ -1609,13 +1744,9 @@ plot
 
 # ggsave(plot, filename = "pca_plot2.pdf", width = 7, height = 7)
 
-
-###select 6 subjects that are
-
-
 ###radar plot
 # idx = c("S13", "S36", "S17", "S30", "S8")
-plot =
+plot <-
   all_score[, idx, drop = FALSE] %>%
   t() %>%
   as.data.frame() %>%
@@ -1663,11 +1794,11 @@ mean_score <-
   dplyr::select(subject_id, everything()) %>%
   dplyr::mutate(class = "mean")
 
-idx <-
-  all_score[, idx, drop = FALSE] %>% apply(2, sum) %>%
-  sort() %>%
-  rev() %>%
-  names()
+# idx <-
+#   all_score[, idx, drop = FALSE] %>% apply(2, sum) %>%
+#   sort() %>%
+#   rev() %>%
+#   names()
 
 plot <-
   all_score[, idx, drop = FALSE] %>%
