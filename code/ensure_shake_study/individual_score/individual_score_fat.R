@@ -182,8 +182,8 @@ plot =
     panel.background = element_rect(fill = "transparent", color = NA),
     plot.background = element_rect(fill = "transparent", color = NA),
     legend.background = element_rect(fill = "transparent", color = NA),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
+    # axis.text.y = element_blank(),
+    # axis.ticks.y = element_blank(),
     strip.background = element_rect(fill = "#0099B47F"),
     strip.text = element_text(color = "white", size = 10)
   )  +
