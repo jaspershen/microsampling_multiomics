@@ -8,9 +8,17 @@ source("code/lagged_correlation.R")
 
 ###data loading
 ####load all omics data loess data
-load(here::here("data/24_7_study/combine_omics/data_preparation/new_expression_data"))
-load(here::here("data/24_7_study/combine_omics/data_preparation/new_sample_info"))
-load(here::here("data/24_7_study/combine_omics/data_preparation/new_variable_info"))
+load(
+  here::here(
+    "data/24_7_study/combine_omics/data_preparation/new_expression_data"
+  )
+)
+load(here::here(
+  "data/24_7_study/combine_omics/data_preparation/new_sample_info"
+))
+load(here::here(
+  "data/24_7_study/combine_omics/data_preparation/new_variable_info"
+))
 
 expression_data = new_expression_data
 sample_info = new_sample_info
@@ -29,35 +37,33 @@ setwd("data/24_7_study/inter_omics_correlation/inter_all_omics_loess_data")
 ###get the matched index
 time1 = sample_info$accurate_time
 time2 = sample_info$accurate_time
-x = as.numeric(expression_data[1,])
-y = as.numeric(expression_data[1,])
+x = as.numeric(expression_data[1, ])
+y = as.numeric(expression_data[1, ])
 time_tol = 300 / 60
 step = 30 / 60
 
-time_window1 = 
-  seq(from = step/2, to = time_tol, by = step)
+time_window1 =
+  seq(from = step / 2, to = time_tol, by = step)
 
-time_window2 = 
-  -rev(seq(from = step/2, to = time_tol, by = step))
+time_window2 =
+  -rev(seq(from = step / 2, to = time_tol, by = step))
 
 time_window = sort(c(time_window2, time_window1))
 
-shift_time = 
+shift_time =
   paste("(",
         paste(round(time_window[-length(time_window)] * 60, 2),
               round(time_window[-1] * 60, 2), sep = ','),
-        "]", sep = ""
-  )
+        "]", sep = "")
 
 
-temp_fun = 
+temp_fun =
   function(temp_idx,
            time_window,
            x,
            y,
            time1,
-           time2
-  ){
+           time2) {
     idx =
       time1 %>%
       purrr::map(function(x) {
@@ -68,26 +74,31 @@ temp_fun =
       })
   }
 
-bpparam = BiocParallel::MulticoreParam(workers = 10, 
+bpparam = BiocParallel::MulticoreParam(workers = 10,
                                        progressbar = TRUE)
 
-all_idx = 
-    BiocParallel::bplapply(X = 1:(length(time_window) - 1), 
-                           FUN = temp_fun, 
-                           time_window = time_window,
-                           x = x,
-                           y = y,
-                           time1 = time1,
-                           time2 = time2, 
-                           BPPARAM = bpparam)      
+all_idx =
+  BiocParallel::bplapply(
+    X = 1:(length(time_window) - 1),
+    FUN = temp_fun,
+    time_window = time_window,
+    x = x,
+    y = y,
+    time1 = time1,
+    time2 = time2,
+    BPPARAM = bpparam
+  )
 
 all_idx
 
-shift_time = 
-  lapply(1:(length(time_window) - 1), FUN = function(idx){
-    mean(time_window[c(idx, idx+1)])
-  }) %>% 
-  unlist() %>% 
+shift_time =
+  lapply(
+    1:(length(time_window) - 1),
+    FUN = function(idx) {
+      mean(time_window[c(idx, idx + 1)])
+    }
+  ) %>%
+  unlist() %>%
   `*`(60)
 
 all_idx %>%
@@ -105,40 +116,54 @@ all_idx %>%
             nudge_y = 1) +
   labs(x = "Shift time (min)", y = "Matched sample number")
 
-temp_data = 
-purrr::map2(.x = all_idx, 
-            .y = shift_time,
-              .f = function(idx,
-                            t){
+temp_data =
   purrr::map2(
-    time1,
-    idx,
-    .f = function(x, y) {
-      difftime(time1 = x, time2 = time1[y], units = "hour")
+    .x = all_idx,
+    .y = shift_time,
+    .f = function(idx,
+                  t) {
+      purrr::map2(
+        time1,
+        idx,
+        .f = function(x, y) {
+          difftime(time1 = x,
+                   time2 = time1[y],
+                   units = "hour")
+        }
+      ) %>%
+        unlist() %>%
+        data.frame(time = ., shift_time = t) %>%
+        dplyr::mutate(time = time * 60)
     }
-  ) %>% 
-    unlist() %>% 
-    data.frame(time = ., shift_time = t) %>% 
-                  dplyr::mutate(time = time * 60)
-}) %>% 
-  do.call(rbind, .) %>% 
+  ) %>%
+  do.call(rbind, .) %>%
   as.data.frame()
 
 library(gghalves)
 
-plot = 
-temp_data %>% 
-  dplyr::mutate(shift_time = as.character(shift_time)) %>% 
-  dplyr::mutate(shift_time = factor(shift_time, 
-                                    levels = as.character(unique(temp_data$shift_time)))) %>% 
-  ggplot(aes(x=shift_time, time)) +
-  geom_half_boxplot(aes(x=shift_time, time),
-                    fill = "transparent",
-                    show.legend = FALSE, side = "l") +
-  geom_half_violin(aes(x=shift_time, time, color = shift_time), 
-                   show.legend = FALSE, side = "r") +
-  geom_half_point(aes(x=shift_time, time, color = shift_time), 
-                  show.legend = FALSE, side = "l", alpha = 0.7) +
+plot =
+  temp_data %>%
+  dplyr::mutate(shift_time = as.character(shift_time)) %>%
+  dplyr::mutate(shift_time = factor(shift_time,
+                                    levels = as.character(unique(
+                                      temp_data$shift_time
+                                    )))) %>%
+  ggplot(aes(x = shift_time, time)) +
+  geom_half_boxplot(
+    aes(x = shift_time, time),
+    fill = "transparent",
+    show.legend = FALSE,
+    side = "l"
+  ) +
+  geom_half_violin(aes(x = shift_time, time, color = shift_time),
+                   show.legend = FALSE,
+                   side = "r") +
+  geom_half_point(
+    aes(x = shift_time, time, color = shift_time),
+    show.legend = FALSE,
+    side = "l",
+    alpha = 0.7
+  ) +
   ggsci::scale_color_lancet() +
   base_theme +
   labs(y = "Different time (min)", x = "Shift time (min)")
@@ -146,10 +171,10 @@ temp_data %>%
 plot
 
 # ggsave(plot, filename = "match_plot.pdf", width = 9, height = 7)
-# 
+#
 # dir.create("lagged_correlation")
 # total_number = nrow(expression_data)
-# 
+#
 # lagged_result =
 #   purrr::map(1:(total_number - 1), function(i) {
 #     cat(i, " ")
@@ -161,7 +186,7 @@ plot
 #                    time1 = sample_info$accurate_time
 #                    y = as.numeric(expression_data[j, ])
 #                    time2 = sample_info$accurate_time
-# 
+#
 #                    result = lagged_correlation(
 #                      x = x,
 #                      y = y,
@@ -173,7 +198,7 @@ plot
 #                      all_idx = all_idx,
 #                      progressbar = FALSE
 #                    )
-# 
+#
 #                    p = result$all_cor_p
 #                    p = p.adjust(p,
 #                                 method = "BH",
@@ -187,7 +212,7 @@ plot
 #     names(temp_result) = rownames(expression_data)[(i + 1):total_number]
 #     temp_result
 #   })
-# 
+#
 # names(lagged_result) =  rownames(expression_data)[1:(total_number - 1)]
 # save(lagged_result, file = "lagged_correlation/lagged_result")
 
@@ -202,16 +227,16 @@ load("lagged_correlation/lagged_result")
 
 
 # #####evaluate peak quality
-# 
+#
 
 evaluate_peak_quality(object = lagged_result[[2]][[15]])
 
 ###output the matched plot
 dir.create("sample_matching_plot")
 
-idx = 
-lagged_result[[2]] %>% lapply(class) %>% unlist() %>% 
-  `==`("list") %>% 
+idx =
+  lagged_result[[2]] %>% lapply(class) %>% unlist() %>%
+  `==`("list") %>%
   which()
 
 
@@ -238,7 +263,7 @@ load(here::here("data/24_7_study/summary_info/day_night_df"))
 #         cor = y$all_cor,
 #         p = y$all_cor_p
 #       )
-# 
+#
 #       result = evaluate_peak_quality(object = y, plot = FALSE)
 #       temp_data$score = result$score
 #       temp_data
@@ -248,10 +273,10 @@ load(here::here("data/24_7_study/summary_info/day_night_df"))
 #   }) %>%
 #   do.call(rbind, .) %>%
 #   as.data.frame()
-# 
+#
 # save(cor_data, file = "lagged_correlation/cor_data", compress = "xz")
 load("lagged_correlation/cor_data")
-  
+
 ##output the shift time vs correlation plots
 temp_data =
   cor_data %>%
@@ -260,8 +285,10 @@ temp_data =
   dplyr::filter(abs(cor) == max(abs(cor))) %>%
   dplyr::ungroup()
 
-temp_data$p_adjust = p.adjust(temp_data$p, method = "bonferroni",
-                               n = nrow(expression_data) * (nrow(expression_data) - 1)/2)
+temp_data$p_adjust = p.adjust(temp_data$p,
+                              method = "bonferroni",
+                              n = nrow(expression_data) * (nrow(expression_data) - 1) /
+                                2)
 
 temp_data =
   temp_data %>%
@@ -297,13 +324,15 @@ lagged_cor =
   lagged_cor %>%
   dplyr::group_by(from, to) %>%
   dplyr::filter(abs(cor) == max(abs(cor))) %>%
-  dplyr::ungroup() 
+  dplyr::ungroup()
 
-lagged_cor$p_adjust = p.adjust(lagged_cor$p, method = "bonferroni", 
-                               n = nrow(expression_data) * (nrow(expression_data) - 1)/2)
+lagged_cor$p_adjust = p.adjust(lagged_cor$p,
+                               method = "bonferroni",
+                               n = nrow(expression_data) * (nrow(expression_data) - 1) /
+                                 2)
 
-lagged_cor = 
-  lagged_cor %>% 
+lagged_cor =
+  lagged_cor %>%
   dplyr::filter(p_adjust < 0.05)
 
 global_cor =
@@ -311,10 +340,11 @@ global_cor =
   dplyr::filter(shift_time == "(-15,15]")
 
 global_cor$p_adjust = p.adjust(global_cor$p, method = "bonferroni",
-                               nrow(expression_data) * (nrow(expression_data) - 1)/2)
+                               nrow(expression_data) * (nrow(expression_data) - 1) /
+                                 2)
 
-global_cor = 
-  global_cor %>% 
+global_cor =
+  global_cor %>%
   dplyr::filter(p_adjust < 0.05)
 
 dim(lagged_cor)
@@ -328,18 +358,18 @@ lagged_cor =
   dplyr::select(name, dplyr::everything()) %>%
   dplyr::arrange(name)
 
-global_cor = 
-  global_cor %>% 
-  dplyr::mutate(name = paste(from, to, sep = "_")) %>% 
-  dplyr::select(name, dplyr::everything()) %>% 
+global_cor =
+  global_cor %>%
+  dplyr::mutate(name = paste(from, to, sep = "_")) %>%
+  dplyr::select(name, dplyr::everything()) %>%
   dplyr::arrange(name)
 
-global_cor %>% 
-  dplyr::arrange(abs(cor)) %>% 
+global_cor %>%
+  dplyr::arrange(abs(cor)) %>%
   tail()
 
-plot(as.numeric(expression_data["lipid_465",]),
-     as.numeric(expression_data["lipid_468",]))
+plot(as.numeric(expression_data["lipid_465", ]),
+     as.numeric(expression_data["lipid_468", ]))
 
 dim(global_cor)
 dim(lagged_cor)
@@ -358,21 +388,3 @@ library(openxlsx)
 # writeDataTable(wb, sheet = 2, x = global_cor,
 #                colNames = TRUE, rowNames = FALSE)
 # saveWorkbook(wb, "lagged_correlation/cor_data.xlsx", overwrite = TRUE)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
